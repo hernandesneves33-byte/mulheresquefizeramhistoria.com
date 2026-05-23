@@ -2688,6 +2688,8 @@ firebase.initializeApp(firebaseConfig);
 
 const auth = firebase.auth();
 
+const db = firebase.firestore();
+
 async function googleLogin(){
 
  const provider =
@@ -2695,7 +2697,22 @@ async function googleLogin(){
 
  try{
 
+   const result =
    await auth.signInWithPopup(provider);
+
+   const user = result.user;
+
+   await db.collection("users")
+   .doc(user.uid)
+   .set({
+
+     nome: user.displayName,
+     email: user.email,
+     foto: user.photoURL,
+     uid: user.uid,
+     ultimoLogin: Date.now()
+
+   });
 
  }catch(e){
 
@@ -2715,6 +2732,23 @@ auth.onAuthStateChanged((user)=>{
  if(user){
 
    loginScreen.style.display = "none";
+
+   const photo =
+   document.getElementById("user-photo");
+
+   const name =
+   document.getElementById("user-name");
+
+   const email =
+   document.getElementById("user-email");
+
+   if(photo) photo.src = user.photoURL;
+
+   if(name) name.innerText =
+   user.displayName;
+
+   if(email) email.innerText =
+   user.email;
 
  }else{
 
