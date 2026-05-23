@@ -2518,6 +2518,10 @@ const realtimeDB = firebase.database();
 
    alert("Bem-vindo " + user.displayName);
 
+   document.getElementById(
+   "login-screen"
+   ).style.display = "none";
+
  }catch(e){
 
    console.error(e);
@@ -2527,6 +2531,17 @@ const realtimeDB = firebase.database();
  }
 
 }
+  auth.onAuthStateChanged((user)=>{
+
+ if(user){
+
+   document.getElementById(
+   "login-screen"
+   ).style.display = "none";
+
+ }
+
+});
 </script>
 </body>
 </html>
