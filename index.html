@@ -26,50 +26,29 @@
     --radius-sm: 12px;
     --tab-h: 72px;
     --top-h: 60px;
-    /* Custom scrollbar width */
-    --scrollbar-w: 4px;
-    --scrollbar-track: rgba(111,107,216,0.08);
-    --scrollbar-thumb: rgba(111,107,216,0.5);
-    --scrollbar-thumb-hover: rgba(179,157,255,0.8);
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  /* =====================================================
-     PULL-TO-REFRESH BLOQUEIO TOTAL — Android WebView
-     Camada 1: CSS overscroll-behavior (moderno)
-     Camada 2: touch-action (bloqueia gestos nativos)
-     Camada 3: JS touchmove preventDefault (WebView legado)
-  ===================================================== */
+  /* ====== PULL-TO-REFRESH DISABLED ====== */
+  /* Desativa overscroll/pull-to-refresh no Android WebView e browsers modernos */
   html {
-    overscroll-behavior: none !important;
-    overscroll-behavior-y: none !important;
-    /* Bloqueia rubber-band scroll iOS */
-    -webkit-overflow-scrolling: auto;
-    /* Impede que o WebView propague o gesto para o nativo */
-    touch-action: none;
+    overscroll-behavior: none;
+    overscroll-behavior-y: none;
+    -webkit-overscroll-behavior: none;
   }
 
-  body {
+  html, body {
     height: 100%; width: 100%;
     background: var(--bg);
     color: var(--text);
     font-family: 'DM Sans', system-ui, sans-serif;
-    /* Bloqueia scroll no body — scroll fica só nas .page */
-    overflow: hidden !important;
-    overscroll-behavior: none !important;
-    overscroll-behavior-y: none !important;
-    /* Bloqueia touch-action para pull-to-refresh do Android */
-    touch-action: none;
+    overflow: hidden;
+    touch-action: pan-y;
     -webkit-tap-highlight-color: transparent;
-    -webkit-user-select: none;
-    user-select: none;
-  }
-
-  /* Permite seleção de texto apenas no conteúdo editorial */
-  .modal-body, .entry-text, .diary-textarea {
-    -webkit-user-select: text;
-    user-select: text;
+    /* Previne rubber-band scroll no iOS e overscroll no Android */
+    overscroll-behavior: none;
+    overscroll-behavior-y: contain;
   }
 
   #canvas-bg {
@@ -82,8 +61,6 @@
     height: 100vh; width: 100%;
     display: flex; flex-direction: column;
     max-width: 480px; margin: 0 auto;
-    /* Garante que o app nunca propague scroll para o body */
-    overflow: hidden;
   }
 
   /* ====== SCROLL PROGRESS BAR ====== */
@@ -135,7 +112,6 @@
     box-shadow: 0 0 20px rgba(232,93,138,0.4);
     transition: all 0.2s;
     animation: pulse-sos 2.5s ease-in-out infinite;
-    touch-action: manipulation;
   }
 
   .sos-btn.crisis { animation: pulse-sos-fast 1s ease-in-out infinite; box-shadow: 0 0 30px rgba(232,93,138,0.7); }
@@ -161,93 +137,25 @@
     flex: 1; overflow: hidden; position: relative;
   }
 
-  /* =====================================================
-     PÁGINA COM SCROLL PERSONALIZADO
-     touch-action: pan-y  → permite scroll vertical DENTRO
-     da .page sem propagar para o body/WebView
-     overscroll-behavior: contain → BLOQUEIA pull-to-refresh
-     mesmo quando no topo da página
-  ===================================================== */
   .page {
     position: absolute; inset: 0;
-    overflow-y: scroll;   /* scroll (não auto) garante scroll em WebView */
-    overflow-x: hidden;
+    overflow-y: auto; overflow-x: hidden;
     padding: 0 20px calc(var(--tab-h) + 20px);
     opacity: 0; pointer-events: none;
     transform: translateY(12px);
     transition: opacity 0.3s ease, transform 0.3s ease;
-    scrollbar-width: none; /* Firefox */
-    /* ↓↓↓ CHAVE: bloqueia pull-to-refresh e rubber-band ↓↓↓ */
+    scrollbar-width: none;
+    /* Previne pull-to-refresh em cada página individualmente */
     overscroll-behavior: contain;
     overscroll-behavior-y: contain;
-    /* Permite gesture de scroll vertical dentro da div */
-    touch-action: pan-y;
-    /* Melhora suavidade do scroll em Android */
     -webkit-overflow-scrolling: touch;
-    /* Evita bounce extra no iOS */
-    will-change: scroll-position;
   }
-  .page::-webkit-scrollbar { display: none; } /* Chrome/WebView */
+  .page::-webkit-scrollbar { display: none; }
   .page.active { opacity: 1; pointer-events: all; transform: translateY(0); }
 
+  /* Page inner scroll padding */
   .page-inner {
     padding-top: 20px;
-    /* Espaço para a scrollbar flutuante não sobrepor conteúdo */
-    padding-right: 12px;
-  }
-
-  /* =====================================================
-     SCROLLBAR FLUTUANTE PERSONALIZADA
-     Aparece à direita da página ativa, semi-transparente,
-     desaparece quando não há scroll, draggable via JS
-  ===================================================== */
-  .custom-scrollbar {
-    position: absolute;
-    right: 3px;
-    top: 0;
-    bottom: var(--tab-h);
-    width: 20px; /* área de toque maior que o visual */
-    z-index: 30;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.25s ease;
-  }
-
-  .custom-scrollbar.visible {
-    opacity: 1;
-    pointer-events: all;
-  }
-
-  .scrollbar-track {
-    position: absolute;
-    right: 4px;
-    top: 8px;
-    bottom: 8px;
-    width: var(--scrollbar-w);
-    background: var(--scrollbar-track);
-    border-radius: 10px;
-  }
-
-  .scrollbar-thumb {
-    position: absolute;
-    right: 0;
-    width: var(--scrollbar-w);
-    min-height: 36px;
-    background: var(--scrollbar-thumb);
-    border-radius: 10px;
-    cursor: grab;
-    transition: background 0.2s, width 0.2s, right 0.2s;
-    box-shadow: 0 0 8px rgba(111,107,216,0.4);
-    touch-action: none; /* thumb usa ponteiro próprio */
-  }
-
-  .scrollbar-thumb:active,
-  .scrollbar-thumb.dragging {
-    background: var(--scrollbar-thumb-hover);
-    width: 6px;
-    right: -1px;
-    cursor: grabbing;
-    box-shadow: 0 0 14px rgba(179,157,255,0.6);
   }
 
   /* BOTTOM NAV */
@@ -270,7 +178,6 @@
     font-size: 0.6rem; font-weight: 500;
     letter-spacing: 0.03em; text-transform: uppercase;
     -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
   }
 
   .nav-btn .nav-icon { font-size: 1.3rem; transition: transform 0.2s; }
@@ -346,7 +253,6 @@
     transition: all 0.2s;
     font-size: 0.65rem; color: var(--text2);
     font-weight: 500;
-    touch-action: manipulation;
   }
 
   .emotion-btn .em { font-size: 1.6rem; display: block; }
@@ -358,7 +264,9 @@
   }
 
   /* WEEK CHART */
-  .week-chart-container { position: relative; }
+  .week-chart-container {
+    position: relative;
+  }
 
   .week-chart {
     display: flex; justify-content: space-between;
@@ -386,7 +294,6 @@
     height: 100%;
     justify-content: flex-end;
     position: relative;
-    touch-action: manipulation;
   }
   .day-bar-wrap:active { opacity: 0.7; }
 
@@ -422,7 +329,8 @@
   }
 
   .day-bar-wrap.today-wrap .day-label {
-    color: var(--purple3); font-weight: 700;
+    color: var(--purple3);
+    font-weight: 700;
   }
 
   .chart-tooltip {
@@ -464,7 +372,6 @@
     transition: all 0.2s;
     color: var(--text2); font-size: 0.8rem; font-weight: 500;
     text-align: left;
-    touch-action: manipulation;
   }
 
   .quick-btn .qi { font-size: 1.4rem; }
@@ -479,8 +386,6 @@
     display: flex; gap: 8px;
     overflow-x: auto; padding-bottom: 4px;
     scrollbar-width: none; margin-bottom: 16px;
-    overscroll-behavior-x: contain;
-    touch-action: pan-x;
   }
   .exercise-tabs::-webkit-scrollbar { display: none; }
 
@@ -493,7 +398,6 @@
     font-size: 0.72rem; font-weight: 500;
     color: var(--text2); cursor: pointer;
     transition: all 0.2s; white-space: nowrap;
-    touch-action: manipulation;
   }
 
   .ex-tab.active {
@@ -529,7 +433,6 @@
     font-size: 0.8rem; font-weight: 600;
     padding: 10px 20px; cursor: pointer;
     transition: all 0.2s;
-    touch-action: manipulation;
   }
   .ex-start-btn:active { transform: scale(0.97); opacity: 0.9; }
 
@@ -601,7 +504,6 @@
     font-family: 'DM Sans', sans-serif;
     font-size: 0.85rem; font-weight: 600;
     transition: all 0.2s;
-    touch-action: manipulation;
   }
   .ctrl-btn.primary {
     background: linear-gradient(135deg, var(--purple), var(--purple2));
@@ -620,9 +522,6 @@
     resize: none; outline: none;
     transition: border-color 0.2s;
     line-height: 1.6;
-    /* Textarea pode scrollar internamente sem pull-to-refresh */
-    touch-action: pan-y;
-    overscroll-behavior: contain;
   }
   .diary-textarea:focus { border-color: var(--purple); }
   .diary-textarea::placeholder { color: var(--text3); }
@@ -661,7 +560,6 @@
     padding: 14px; cursor: pointer;
     transition: all 0.2s;
     display: flex; align-items: center; justify-content: center; gap: 8px;
-    touch-action: manipulation;
   }
   .save-btn:active { opacity: 0.85; transform: scale(0.98); }
   .save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -702,7 +600,6 @@
     color: var(--text3); cursor: pointer;
     font-size: 0.75rem; padding: 4px 8px;
     border-radius: 6px; transition: all 0.2s;
-    touch-action: manipulation;
   }
   .entry-action:hover { color: var(--text); background: var(--card2); }
   .entry-action.delete:hover { color: #e85d8a; }
@@ -721,7 +618,6 @@
     color: var(--purple3); font-size: 0.72rem;
     cursor: pointer; padding: 4px 0;
     font-weight: 500;
-    touch-action: manipulation;
   }
 
   .diary-empty {
@@ -752,7 +648,6 @@
     padding: 18px 20px; margin-bottom: 10px;
     cursor: pointer; transition: all 0.2s;
     display: flex; align-items: center; justify-content: space-between;
-    touch-action: manipulation;
   }
   .lib-card:active { transform: scale(0.98); border-color: var(--purple); }
 
@@ -805,7 +700,6 @@
     text-align: left; transition: all 0.2s;
     display: flex; align-items: center; gap: 10px;
     margin-bottom: 10px;
-    touch-action: manipulation;
   }
   .action-btn:active { transform: scale(0.98); border-color: var(--purple); }
   .danger-btn { color: #e85d8a; border-color: rgba(232,93,138,0.3); }
@@ -819,7 +713,6 @@
     justify-content: center;
     opacity: 0; pointer-events: none;
     transition: opacity 0.3s;
-    touch-action: none; /* bloqueia scroll por trás do modal */
   }
   .modal-overlay.open { opacity: 1; pointer-events: all; }
 
@@ -833,9 +726,6 @@
     transition: transform 0.35s cubic-bezier(0.34,1.2,0.64,1);
     max-height: 80vh; overflow-y: auto;
     scrollbar-width: none;
-    /* Modal interno pode scrollar sem fechar */
-    overscroll-behavior: contain;
-    touch-action: pan-y;
   }
   .modal::-webkit-scrollbar { display: none; }
   .modal-overlay.open .modal { transform: translateY(0); }
@@ -862,7 +752,6 @@
     color: var(--text); font-family: 'DM Sans', sans-serif;
     font-size: 0.9rem; font-weight: 600;
     padding: 14px; cursor: pointer; transition: all 0.2s;
-    touch-action: manipulation;
   }
   .modal-close:active { opacity: 0.8; }
 
@@ -886,7 +775,6 @@
     padding: 16px; cursor: pointer;
     transition: all 0.2s; margin-bottom: 10px;
     display: flex; align-items: center; justify-content: center; gap: 8px;
-    touch-action: manipulation;
   }
   .call-btn:active { opacity: 0.85; transform: scale(0.98); }
 
@@ -939,7 +827,6 @@
     white-space: nowrap;
     max-width: calc(100vw - 40px);
     text-align: center;
-    pointer-events: none;
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -982,10 +869,14 @@
     width: 100%; height: 60px; margin-top: 8px;
   }
 
-  .week-chart-wrap { margin-bottom: 0; }
+  .week-chart-wrap {
+    margin-bottom: 0;
+  }
 
-  /* =====================================================
-     FLOATING ACTION BUTTONS
+  /* ====================================================
+     FLOATING ACTION BUTTONS — NOVO
+     Botões flutuantes modernos para navegação rápida
+     Posicionados acima da bottom nav, canto direito
   ===================================================== */
   .fab-group {
     position: fixed;
@@ -996,14 +887,20 @@
     flex-direction: column;
     align-items: flex-end;
     gap: 10px;
+    /* Garante que fique centralizado igual ao app (max 480px) */
+    max-width: calc(480px - 32px);
   }
 
+  /* Quando o viewport for maior que 480px, alinha com o app */
   @media (min-width: 480px) {
-    .fab-group { right: calc(50% - 480px/2 + 16px); }
+    .fab-group {
+      right: calc(50% - 480px/2 + 16px);
+    }
   }
 
   .fab-btn {
-    width: 44px; height: 44px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     border: 1px solid rgba(111,107,216,0.35);
     background: rgba(19, 16, 43, 0.88);
@@ -1011,100 +908,533 @@
     -webkit-backdrop-filter: blur(16px);
     color: var(--purple3);
     font-size: 1.1rem;
-    display: flex; align-items: center; justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 0 0 1px rgba(111,107,216,0.1), inset 0 1px 0 rgba(255,255,255,0.06);
-    transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s ease, background 0.2s ease, opacity 0.3s ease;
+    box-shadow:
+      0 4px 20px rgba(0,0,0,0.4),
+      0 0 0 1px rgba(111,107,216,0.1),
+      inset 0 1px 0 rgba(255,255,255,0.06);
+    transition:
+      transform 0.18s cubic-bezier(0.34,1.56,0.64,1),
+      box-shadow 0.2s ease,
+      background 0.2s ease,
+      opacity 0.3s ease;
+    /* Desativa highlight em tap Android */
     -webkit-tap-highlight-color: transparent;
     user-select: none;
+    -webkit-user-select: none;
+    /* Opacidade reduzida por padrão para não poluir a tela */
     opacity: 0.55;
-    touch-action: manipulation;
   }
 
-  .fab-btn:hover, .fab-btn:focus-visible {
+  .fab-btn:hover,
+  .fab-btn:focus-visible {
     opacity: 1;
-    box-shadow: 0 6px 24px rgba(111,107,216,0.35), 0 0 0 1px rgba(111,107,216,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
+    box-shadow:
+      0 6px 24px rgba(111,107,216,0.35),
+      0 0 0 1px rgba(111,107,216,0.3),
+      inset 0 1px 0 rgba(255,255,255,0.08);
   }
 
   .fab-btn:active {
-    transform: scale(0.88); opacity: 1;
-    box-shadow: 0 2px 10px rgba(111,107,216,0.2), inset 0 1px 0 rgba(255,255,255,0.04);
+    transform: scale(0.88);
+    opacity: 1;
+    box-shadow:
+      0 2px 10px rgba(111,107,216,0.2),
+      inset 0 1px 0 rgba(255,255,255,0.04);
   }
 
-  .fab-btn.fab-top { opacity: 0; pointer-events: none; transform: translateY(6px); }
-  .fab-btn.fab-top.visible { opacity: 0.55; pointer-events: auto; transform: translateY(0); }
-  .fab-btn.fab-top.visible:hover, .fab-btn.fab-top.visible:focus-visible { opacity: 1; }
+  /* Botão de topo — sobe: aparece só quando há scroll */
+  .fab-btn.fab-top {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(6px);
+  }
+  .fab-btn.fab-top.visible {
+    opacity: 0.55;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+  .fab-btn.fab-top.visible:hover,
+  .fab-btn.fab-top.visible:focus-visible {
+    opacity: 1;
+  }
 
-  .fab-btn.fab-reload.spinning .fab-icon { animation: spinOnce 0.5s ease-in-out; }
+  /* Botão reload — destaque especial */
+  .fab-btn.fab-reload {
+    background: rgba(19, 16, 43, 0.88);
+    color: var(--purple3);
+  }
+
+  /* Animação de giro no reload */
+  .fab-btn.fab-reload.spinning svg,
+  .fab-btn.fab-reload.spinning .fab-icon {
+    animation: spinOnce 0.5s ease-in-out;
+  }
 
   @keyframes spinOnce {
     from { transform: rotate(0deg); }
     to   { transform: rotate(360deg); }
   }
 
+  /* Tooltip nos FABs */
   .fab-btn[data-tip]::before {
     content: attr(data-tip);
     position: absolute;
     right: calc(100% + 10px);
-    top: 50%; transform: translateY(-50%);
+    top: 50%;
+    transform: translateY(-50%);
     background: rgba(19, 16, 43, 0.95);
     border: 1px solid var(--border);
-    border-radius: 8px; padding: 5px 10px;
-    font-size: 0.68rem; font-family: 'DM Sans', sans-serif;
-    color: var(--text2); white-space: nowrap;
-    pointer-events: none; opacity: 0;
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 0.68rem;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text2);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
     transition: opacity 0.15s;
   }
-  .fab-btn[data-tip]:hover::before { opacity: 1; }
 
+  .fab-btn[data-tip]:hover::before {
+    opacity: 1;
+  }
+
+  /* Ícone dentro do FAB (texto/emoji) */
   .fab-icon {
     line-height: 1;
-    display: inline-flex; align-items: center; justify-content: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     font-style: normal;
     transition: transform 0.18s;
+    /* Tamanho ligeiramente menor para caber bem */
     font-size: 1rem;
   }
+
+  /* Separador visual entre os 3 botões */
+  .fab-divider {
+    width: 1px;
+    height: 0;
+    /* Só visual no hover do grupo */
+  }
+
+  /* ====================================================
+     NOVAS FUNCIONALIDADES — CSS ADICIONAL
+  ===================================================== */
+
+  /* --- TELA DE LOGIN --- */
+  #login-screen {
+    position: fixed; inset: 0; z-index: 500;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 32px 20px;
+    overflow-y: auto;
+    transition: opacity 0.4s ease;
+  }
+  #login-screen.hidden { opacity: 0; pointer-events: none; }
+  .login-logo {
+    font-family: 'DM Serif Display', serif; font-size: 2rem;
+    background: linear-gradient(135deg, var(--purple3), var(--purple2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; text-align: center; margin-bottom: 6px;
+  }
+  .login-tagline { font-size: 0.82rem; color: var(--text3); text-align: center; margin-bottom: 36px; line-height: 1.5; }
+  .login-card {
+    width: 100%; max-width: 380px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 26px 22px;
+    backdrop-filter: blur(10px);
+  }
+  .login-tabs {
+    display: flex; gap: 4px;
+    background: rgba(0,0,0,0.3); border-radius: 10px; padding: 4px;
+    margin-bottom: 22px;
+  }
+  .login-tab {
+    flex: 1; padding: 9px; border: none; border-radius: 8px;
+    background: none; color: var(--text3);
+    font-family: 'DM Sans', sans-serif; font-size: 0.82rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .login-tab.active { background: var(--purple); color: white; }
+  .login-form { display: flex; flex-direction: column; gap: 12px; }
+  .login-form-group { display: flex; flex-direction: column; gap: 5px; }
+  .login-label { font-size: 0.72rem; color: var(--text3); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+  .login-input {
+    width: 100%; background: var(--card2); border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 0.9rem; padding: 11px 14px;
+    outline: none; transition: border-color 0.2s;
+    -webkit-user-select: text; user-select: text;
+  }
+  .login-input:focus { border-color: var(--purple); }
+  .login-input::placeholder { color: var(--text3); }
+  .login-btn {
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg, var(--purple), var(--purple2));
+    border: none; border-radius: var(--radius-sm); color: white;
+    font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 700;
+    cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .login-btn:active { opacity: 0.85; transform: scale(0.98); }
+  .login-divider {
+    display: flex; align-items: center; gap: 12px;
+    color: var(--text3); font-size: 0.72rem;
+  }
+  .login-divider::before, .login-divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+  .google-btn {
+    width: 100%; padding: 12px;
+    background: white; border: none; border-radius: var(--radius-sm);
+    color: #333; font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem; font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    transition: all 0.2s;
+  }
+  .google-btn:active { opacity: 0.85; transform: scale(0.98); }
+  .login-error {
+    background: rgba(232,93,138,0.1); border: 1px solid rgba(232,93,138,0.3);
+    border-radius: 8px; padding: 10px 12px;
+    font-size: 0.78rem; color: #f0a0c0; display: none;
+  }
+  .login-error.show { display: block; }
+
+  /* --- CONTATOS DE CONFIANÇA --- */
+  .contact-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 13px 15px; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .contact-avatar {
+    width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--purple), var(--purple2));
+    display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+  }
+  .contact-info { flex: 1; min-width: 0; }
+  .contact-name { font-size: 0.88rem; font-weight: 600; color: var(--text); }
+  .contact-phone { font-size: 0.72rem; color: var(--text3); margin-top: 2px; }
+  .contact-rel { font-size: 0.68rem; color: var(--purple3); font-weight: 500; margin-top: 1px; }
+  .contact-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .contact-act-btn {
+    background: var(--card2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 9px; font-size: 0.78rem;
+    cursor: pointer; color: var(--text2); transition: all 0.2s;
+  }
+  .contact-act-btn:active { transform: scale(0.92); }
+  .contact-act-btn.del:active { color: #e85d8a; }
+
+  /* --- COLAR DE EMERGÊNCIA --- */
+  .necklace-widget {
+    background: linear-gradient(135deg, rgba(232,93,138,0.12), rgba(194,63,106,0.08));
+    border: 1px solid rgba(232,93,138,0.35); border-radius: var(--radius);
+    padding: 24px 20px; text-align: center; margin-bottom: 14px;
+  }
+  .necklace-icon { font-size: 3.2rem; margin-bottom: 8px; }
+  .necklace-title {
+    font-family: 'DM Serif Display', serif; font-size: 1.15rem;
+    color: var(--text); margin-bottom: 6px;
+  }
+  .necklace-desc { font-size: 0.78rem; color: var(--text2); line-height: 1.5; margin-bottom: 16px; }
+  .click-indicators { display: flex; gap: 10px; justify-content: center; margin-bottom: 16px; }
+  .click-dot {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--card2); border: 2px solid var(--border);
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .click-dot.active {
+    background: #e85d8a; border-color: #e85d8a;
+    box-shadow: 0 0 14px rgba(232,93,138,0.6); transform: scale(1.2);
+  }
+  .necklace-btn {
+    width: 78px; height: 78px; border-radius: 50%;
+    background: linear-gradient(135deg, #e85d8a, #c23f6a);
+    border: none; color: white; font-size: 1.9rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; margin: 0 auto;
+    box-shadow: 0 0 28px rgba(232,93,138,0.5);
+    transition: all 0.18s;
+  }
+  .necklace-btn:active { transform: scale(0.9); box-shadow: 0 0 44px rgba(232,93,138,0.8); }
+  .necklace-status { font-size: 0.76rem; color: var(--text3); margin-top: 12px; min-height: 20px; transition: color 0.3s; }
+  .necklace-status.triggered { color: #e85d8a; font-weight: 600; }
+
+  /* --- PSICÓLOGOS --- */
+  .psych-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 20px; margin-bottom: 12px;
+  }
+  .psych-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .psych-avatar {
+    width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, rgba(111,107,216,0.3), rgba(138,92,255,0.15));
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
+  }
+  .psych-name { font-size: 0.9rem; font-weight: 600; color: var(--text); }
+  .psych-spec { font-size: 0.73rem; color: var(--purple3); margin-top: 2px; }
+  .psych-crp { font-size: 0.68rem; color: var(--text3); margin-top: 1px; }
+  .psych-actions { display: flex; gap: 8px; }
+  .psych-btn {
+    flex: 1; padding: 9px 10px;
+    background: var(--card2); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text2);
+    font-family: 'DM Sans', sans-serif; font-size: 0.76rem; font-weight: 500;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;
+    transition: all 0.2s; text-decoration: none;
+  }
+  .psych-btn.primary { background: rgba(111,107,216,0.15); border-color: var(--purple); color: var(--purple3); }
+  .psych-btn:active { transform: scale(0.97); }
+
+  /* --- ADMIN PANEL --- */
+  .admin-stat-row {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 13px 16px; margin-bottom: 8px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .admin-stat-label { font-size: 0.82rem; color: var(--text2); }
+  .admin-stat-value { font-size: 1.2rem; font-weight: 700; color: var(--purple3); }
+  .admin-user-row {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 8px;
+  }
+  .admin-user-name { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+  .admin-user-meta { font-size: 0.7rem; color: var(--text3); margin-top: 3px; }
+  .admin-row-flex { display: flex; align-items: center; justify-content: space-between; }
+  .admin-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(232,93,138,0.15); border: 1px solid rgba(232,93,138,0.3);
+    border-radius: 50px; padding: 2px 8px; font-size: 0.64rem; color: #f0a0c0;
+    margin-top: 5px;
+  }
+  .form-group { margin-bottom: 12px; }
+  .form-label {
+    display: block; font-size: 0.72rem; color: var(--text3); font-weight: 600;
+    letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px;
+  }
+  .form-input {
+    width: 100%; background: var(--card2); border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 0.88rem; padding: 11px 14px;
+    outline: none; transition: border-color 0.2s;
+    -webkit-user-select: text; user-select: text;
+  }
+  .form-input:focus { border-color: var(--purple); }
+  .form-input::placeholder { color: var(--text3); }
+
+  /* --- SOS ALERT OVERLAY --- */
+  .sos-alert-overlay {
+    position: fixed; inset: 0; z-index: 999;
+    background: rgba(194,63,106,0.96); backdrop-filter: blur(20px);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 32px 24px; text-align: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.35s;
+  }
+  .sos-alert-overlay.open { opacity: 1; pointer-events: all; }
+  .sos-alert-icon { font-size: 5rem; margin-bottom: 14px; animation: pulse-icon 1s ease-in-out infinite; }
+  @keyframes pulse-icon { 0%,100%{transform:scale(1)} 50%{transform:scale(1.12)} }
+  .sos-alert-title { font-family: 'DM Serif Display', serif; font-size: 1.9rem; color: white; margin-bottom: 10px; }
+  .sos-alert-msg { font-size: 0.9rem; color: rgba(255,255,255,0.85); line-height: 1.6; margin-bottom: 28px; }
+  .sos-alert-cancel {
+    background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 50px; color: white;
+    font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600;
+    padding: 13px 28px; cursor: pointer;
+  }
+
+
+
+  /* ====================================================
+     CHAT AO VIVO — CSS
+  ===================================================== */
+  .chat-header-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .chat-online-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(77,168,122,0.15); border: 1px solid rgba(77,168,122,0.3);
+    border-radius: 50px; padding: 4px 10px;
+    font-size: 0.68rem; color: #4da87a; font-weight: 600;
+  }
+  .chat-online-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #4da87a;
+    animation: pulse-online 2s ease-in-out infinite;
+  }
+  @keyframes pulse-online { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .chat-messages {
+    height: 340px;
+    overflow-y: auto;
+    background: rgba(0,0,0,0.15);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 10px;
+    display: flex; flex-direction: column; gap: 8px;
+    margin-bottom: 10px;
+    scroll-behavior: smooth;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .chat-messages::-webkit-scrollbar { width: 3px; }
+  .chat-messages::-webkit-scrollbar-thumb { background: rgba(111,107,216,0.4); border-radius: 3px; }
+
+  .chat-msg {
+    display: flex; flex-direction: column; max-width: 80%;
+  }
+  .chat-msg.mine { align-self: flex-end; align-items: flex-end; }
+  .chat-msg.theirs { align-self: flex-start; align-items: flex-start; }
+
+  .chat-bubble {
+    padding: 9px 13px; border-radius: 16px;
+    font-size: 0.84rem; line-height: 1.45;
+    word-break: break-word;
+  }
+  .chat-msg.mine .chat-bubble {
+    background: linear-gradient(135deg, var(--purple), var(--purple2));
+    color: white; border-bottom-right-radius: 4px;
+  }
+  .chat-msg.theirs .chat-bubble {
+    background: var(--card2); color: var(--text);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+  }
+  .chat-bubble.system {
+    background: rgba(111,107,216,0.08);
+    border: 1px solid rgba(111,107,216,0.15);
+    color: var(--text3); font-size: 0.75rem;
+    text-align: center; border-radius: 10px;
+    align-self: center; max-width: 90%;
+    font-style: italic;
+  }
+
+  .chat-meta {
+    font-size: 0.62rem; color: var(--text3);
+    margin-top: 3px; padding: 0 3px;
+  }
+  .chat-sender-name {
+    font-size: 0.68rem; color: var(--purple3);
+    font-weight: 600; margin-bottom: 3px; padding: 0 3px;
+  }
+
+  .chat-input-row {
+    display: flex; gap: 8px; align-items: flex-end;
+  }
+  .chat-textarea {
+    flex: 1;
+    background: var(--card2); border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 0.88rem;
+    padding: 10px 12px; resize: none; outline: none;
+    min-height: 44px; max-height: 100px;
+    transition: border-color 0.2s;
+    -webkit-user-select: text; user-select: text;
+    overscroll-behavior: contain;
+    line-height: 1.45;
+  }
+  .chat-textarea:focus { border-color: var(--purple); }
+  .chat-textarea::placeholder { color: var(--text3); }
+
+  .chat-send-btn {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--purple), var(--purple2));
+    border: none; color: white; font-size: 1.1rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0;
+    transition: all 0.18s;
+  }
+  .chat-send-btn:active { transform: scale(0.9); }
+
+  .chat-typing {
+    font-size: 0.7rem; color: var(--text3); min-height: 18px;
+    padding: 0 4px; font-style: italic;
+    transition: opacity 0.3s;
+  }
+  .chat-typing.hidden { opacity: 0; }
+
+  .chat-rules {
+    background: rgba(179,157,255,0.08); border: 1px solid rgba(179,157,255,0.15);
+    border-radius: 10px; padding: 10px 12px;
+    font-size: 0.72rem; color: var(--text3); line-height: 1.6;
+    margin-bottom: 12px;
+  }
+
+  .chat-empty {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; height: 100%;
+    color: var(--text3); font-size: 0.82rem; text-align: center; gap: 8px;
+  }
+  .chat-empty-icon { font-size: 2.4rem; opacity: 0.4; }
+
 </style>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-  
 </head>
 <body>
 
 <canvas id="canvas-bg"></canvas>
 
-<div id="app">
-  <div id="login-screen" style="
-position:fixed;
-inset:0;
-background:#0d0b1a;
-z-index:9999;
-display:flex;
-justify-content:center;
-align-items:center;
-flex-direction:column;
-">
-
-<h1 style="color:white;">
-💜 S.O.S Eficiência
-</h1>
-
-<button onclick="googleLogin()" style="
-padding:15px 20px;
-border:none;
-border-radius:15px;
-font-weight:bold;
-cursor:pointer;
-">
-Entrar com Google
-</button>
-
+<!-- ====================================================
+     TELA DE LOGIN / CADASTRO — NOVA FUNCIONALIDADE
+===================================================== -->
+<div id="login-screen">
+  <div style="text-align:center;margin-bottom:28px;">
+    <div class="login-logo">💜 S.O.S Eficiência</div>
+    <p class="login-tagline">Seu espaço seguro de apoio emocional.<br>Entre para começar sua jornada de cuidado.</p>
+  </div>
+  <div class="login-card">
+    <div class="login-tabs">
+      <button class="login-tab active" id="tab-entrar" onclick="switchLoginTab('entrar')">Entrar</button>
+      <button class="login-tab" id="tab-cadastrar" onclick="switchLoginTab('cadastrar')">Cadastrar</button>
+    </div>
+    <!-- FORM ENTRAR -->
+    <div id="login-form-entrar" class="login-form">
+      <div class="login-form-group">
+        <label class="login-label">Email</label>
+        <input type="email" class="login-input" id="login-email" placeholder="seu@email.com" autocomplete="email">
+      </div>
+      <div class="login-form-group">
+        <label class="login-label">Senha</label>
+        <input type="password" class="login-input" id="login-senha" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div class="login-error" id="login-error-msg"></div>
+      <button class="login-btn" onclick="doLogin()">🔐 Entrar</button>
+      <div class="login-divider">ou</div>
+      <button class="google-btn" onclick="doGoogleLogin()">
+        <span>🌐</span> Continuar com Google
+      </button>
+    </div>
+    <!-- FORM CADASTRAR -->
+    <div id="login-form-cadastrar" class="login-form" style="display:none;">
+      <div class="login-form-group">
+        <label class="login-label">Nome completo</label>
+        <input type="text" class="login-input" id="reg-nome" placeholder="Seu nome" autocomplete="name">
+      </div>
+      <div class="login-form-group">
+        <label class="login-label">Email</label>
+        <input type="email" class="login-input" id="reg-email" placeholder="seu@email.com" autocomplete="email">
+      </div>
+      <div class="login-form-group">
+        <label class="login-label">Senha (mín. 6 caracteres)</label>
+        <input type="password" class="login-input" id="reg-senha" placeholder="••••••••" autocomplete="new-password">
+      </div>
+      <div class="login-error" id="reg-error-msg"></div>
+      <button class="login-btn" onclick="doRegistrar()">✨ Criar conta</button>
+      <div class="login-divider">ou</div>
+      <button class="google-btn" onclick="doGoogleLogin()">
+        <span>🌐</span> Cadastrar com Google
+      </button>
+    </div>
+  </div>
 </div>
+
+<div id="app">
   <!-- TOP BAR -->
   <div class="topbar">
     <span class="topbar-logo">💜 S.O.S Eficiência</span>
@@ -1115,7 +1445,7 @@ Entrar com Google
   </div>
 
   <!-- PAGES -->
-  <div class="pages" id="pages-container">
+  <div class="pages">
 
     <!-- HOME -->
     <div class="page active" id="page-home">
@@ -1125,14 +1455,17 @@ Entrar com Google
           <span style="font-size:1.5rem">💜</span>
           <p>Percebemos que você está passando por um momento difícil. Você não está sozinho(a).</p>
         </div>
+
         <div class="quote-card fade-up">
           <p class="quote-text" id="quote-text">Carregando...</p>
           <p class="quote-author" id="quote-author"></p>
         </div>
+
         <div class="card fade-up delay-1">
           <div class="section-title">Como está hoje?</div>
           <div class="emotion-grid" id="emotion-grid"></div>
         </div>
+
         <div class="card fade-up delay-2 week-chart-wrap">
           <div class="section-title">Sua Semana</div>
           <div class="week-chart-container">
@@ -1146,12 +1479,13 @@ Entrar com Google
           <svg class="mood-line-chart" id="mood-line-chart" viewBox="0 0 300 60" preserveAspectRatio="none"></svg>
           <div id="chart-legend" style="display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:10px;"></div>
         </div>
+
         <div class="fade-up delay-3">
           <div class="section-title">Atalhos Rápidos</div>
           <div class="quick-grid">
             <button class="quick-btn" onclick="navTo('exercises')"><span class="qi">🌬️</span> Respiração</button>
             <button class="quick-btn" onclick="navTo('diary')"><span class="qi">📖</span> Diário</button>
-            <button class="quick-btn" onclick="navTo('exercises')"><span class="qi">✨</span> Exercícios</button>
+            <button class="quick-btn" onclick="navTo('contacts')"><span class="qi">👥</span> Contatos</button>
             <button class="quick-btn" onclick="openSOS()"><span class="qi">🆘</span> Ajuda</button>
           </div>
         </div>
@@ -1193,6 +1527,86 @@ Entrar com Google
       </div>
     </div>
 
+    <!-- CHAT AO VIVO — NOVA FUNCIONALIDADE -->
+    <div class="page" id="page-chat">
+      <div class="scroll-progress-bar" id="progress-chat"></div>
+      <div class="page-inner">
+
+        <div class="chat-header-bar fade-up">
+          <div class="section-title" style="margin-bottom:0;">💬 Chat ao Vivo</div>
+          <div class="chat-online-badge">
+            <div class="chat-online-dot"></div>
+            <span id="chat-online-count">1 online</span>
+          </div>
+        </div>
+
+        <div class="chat-rules fade-up delay-1">
+          💜 Este é um espaço seguro de apoio mútuo. Respeite todos os participantes. Em caso de emergência, use o botão SOS ou ligue 188 (CVV).
+        </div>
+
+        <div class="card fade-up delay-2" style="padding:14px;">
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-empty">
+              <div class="chat-empty-icon">💬</div>
+              <p>Seja o primeiro a enviar uma mensagem!</p>
+            </div>
+          </div>
+          <div class="chat-typing hidden" id="chat-typing">Alguém está digitando...</div>
+          <div class="chat-input-row">
+            <textarea
+              class="chat-textarea"
+              id="chat-input"
+              placeholder="Escreva sua mensagem..."
+              rows="1"
+              onkeydown="chatKeyDown(event)"
+              oninput="chatTyping()"
+            ></textarea>
+            <button class="chat-send-btn" onclick="sendChatMessage()" title="Enviar">➤</button>
+          </div>
+        </div>
+
+        <div class="info-badge fade-up delay-3" style="margin-top:4px;">
+          🔒 Mensagens ficam armazenadas localmente neste dispositivo.<br>Seu nome de exibição é seu nome de cadastro.
+        </div>
+
+      </div>
+    </div>
+
+    <!-- CONTATOS DE CONFIANÇA + COLAR + PSICÓLOGOS — NOVA FUNCIONALIDADE -->
+    <div class="page" id="page-contacts">
+      <div class="scroll-progress-bar" id="progress-contacts"></div>
+      <div class="page-inner">
+
+        <!-- Colar de Emergência -->
+        <div class="necklace-widget fade-up">
+          <div class="necklace-icon">📿</div>
+          <div class="necklace-title">Colar de Emergência</div>
+          <p class="necklace-desc">Pressione o botão abaixo 3 vezes rapidamente para simular o acionamento do colar e disparar o alerta para seus contatos.</p>
+          <div class="click-indicators">
+            <div class="click-dot" id="ndot0"></div>
+            <div class="click-dot" id="ndot1"></div>
+            <div class="click-dot" id="ndot2"></div>
+          </div>
+          <button class="necklace-btn" onclick="necklaceClick()">🆘</button>
+          <div class="necklace-status" id="necklace-status">Pressione 3 vezes seguidas para acionar</div>
+        </div>
+
+        <!-- Contatos de Confiança -->
+        <div class="card fade-up delay-1">
+          <div class="section-title">Contatos de Confiança</div>
+          <p style="font-size:0.78rem;color:var(--text3);margin-bottom:14px;line-height:1.5;">Pessoas que serão notificadas em caso de emergência emocional.</p>
+          <div id="contacts-list"></div>
+          <button class="save-btn" style="margin-top:8px;" onclick="openAddContact()">➕ Adicionar Contato</button>
+        </div>
+
+        <!-- Psicólogos -->
+        <div class="section-title fade-up delay-2">Psicólogos Confiáveis</div>
+        <p style="font-size:0.78rem;color:var(--text3);margin-bottom:12px;" class="fade-up delay-2">Profissionais de saúde mental disponíveis para apoio.</p>
+        <div id="psychologists-list" class="fade-up delay-3"></div>
+
+      </div>
+    </div>
+
     <!-- LIBRARY -->
     <div class="page" id="page-library">
       <div class="scroll-progress-bar" id="progress-library"></div>
@@ -1203,235 +1617,74 @@ Entrar com Google
       </div>
     </div>
 
-  <!-- PROFILE -->
-<div class="page" id="page-profile">
+    <!-- PROFILE -->
+    <div class="page" id="page-profile">
+      <div class="scroll-progress-bar" id="progress-profile"></div>
+      <div class="page-inner">
+        <div style="text-align:center;margin-bottom:20px;" class="fade-up">
+          <div class="profile-avatar" id="profile-avatar-icon">🌸</div>
+          <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;" id="profile-display-name">Meu Espaço</div>
+          <div style="font-size:0.8rem;color:var(--text3);margin-top:4px;" id="profile-display-email">S.O.S Eficiência — Cuide-se</div>
+        </div>
+
+        <div class="card fade-up delay-1" style="margin-bottom:14px;">
+          <div class="section-title">Meu Progresso</div>
+          <div class="stat-grid" id="stat-grid"></div>
+        </div>
+
+        <div class="card fade-up delay-2">
+          <div class="section-title">Conquistas</div>
+          <div id="achievements-list"></div>
+        </div>
+
+        <!-- PAINEL ADMIN — NOVA FUNCIONALIDADE -->
+        <div class="card fade-up delay-3" style="margin-top:14px;">
+          <div class="section-title">Administração</div>
+          <div id="admin-login-area">
+            <div class="form-group">
+              <label class="form-label">Senha de Administrador</label>
+              <input type="password" class="form-input" id="admin-pw-field" placeholder="Digite a senha admin">
+            </div>
+            <button class="save-btn" style="margin-top:0;" onclick="loginAdmin()">🔐 Acessar Painel Admin</button>
+          </div>
+          <div id="admin-panel" style="display:none;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <span style="font-size:0.78rem;color:var(--purple3);font-weight:600;">✅ Painel Admin ativo</span>
+              <button style="background:none;border:none;color:var(--text3);font-size:0.75rem;cursor:pointer;" onclick="logoutAdmin()">Sair</button>
+            </div>
+            <div class="section-title" style="margin-bottom:8px;">👥 Usuários Cadastrados</div>
+            <div id="admin-users-list"></div>
+            <div class="section-title" style="margin-top:14px;margin-bottom:8px;">🔐 Administradores</div>
+            <div id="admin-admins-list"></div>
+            <button class="save-btn" style="margin-top:8px;" onclick="openAddAdmin()">➕ Adicionar Administrador</button>
+            <div class="section-title" style="margin-top:14px;margin-bottom:8px;">📊 Estatísticas Gerais</div>
+            <div id="admin-stats-list"></div>
+          </div>
+        </div>
+
+        <div class="fade-up delay-3" style="margin-top:0;">
+          <div class="section-title">Dados</div>
+          <button class="action-btn" onclick="exportData()">📤 Exportar meus dados (JSON)</button>
+          <button class="action-btn danger-btn" onclick="resetData()">🗑️ Resetar todos os dados</button>
+          <button class="action-btn danger-btn" onclick="doLogout()">🚪 Sair da conta</button>
+        </div>
+
+        <div class="info-badge fade-up delay-4" style="margin-top:14px;">
+          🔒 Seus dados ficam apenas no seu dispositivo.<br>Nunca compartilhamos suas informações.
+        </div>
+
+        <div class="card fade-up delay-4" style="margin-top:14px;">
+          <div class="section-title">Equipe de Desenvolvimento</div>
+          <div class="team-name"><div class="team-role">Orientador</div>Joe Garcia Lima de Morais</div>
+          <div class="team-name"><div class="team-role">Líder do Projeto &amp; Desenvolvedor</div>Ernandes da Conceição Neves</div>
+          <div class="team-name"><div class="team-role">Equipe de Apoio</div>Isnariane Pereira dos Santos</div>
+          <div class="team-name">Nilmar das Neves Santos</div>
+          <div class="team-name">Maria Iasmin Pires de Moraes</div>
+          <div class="team-name">Evandro da Silva Barros</div>
+        </div>
+      </div>
+    </div>
 
-<div style="text-align:center;margin-bottom:20px;" class="fade-up">
-
-<div class="profile-avatar">💜</div>
-
-<div style="
-font-family:'DM Serif Display',serif;
-font-size:1.3rem;
-">
-
-Meu Espaço
-
-</div>
-
-<div style="
-font-size:0.8rem;
-color:var(--text3);
-margin-top:4px;
-">
-
-S.O.S Eficiência — Cuide-se
-
-</div>
-
-</div>
-
-<!-- CONTA -->
-<div class="card fade-up delay-1">
-
-<div class="section-title">
-Minha Conta
-</div>
-
-<div style="text-align:center;">
-
-<img id="user-photo"
-style="
-width:90px;
-height:90px;
-border-radius:50%;
-margin-bottom:10px;
-object-fit:cover;
-">
-
-<h2 id="user-name">
-Usuário
-</h2>
-
-<p id="user-email">
-email@gmail.com
-</p>
-
-</div>
-
-</div>
-
-<!-- PROGRESSO -->
-<div class="card fade-up delay-2" style="margin-top:14px;">
-
-<div class="section-title">
-Meu Progresso
-</div>
-
-<div class="stat-grid" id="stat-grid"></div>
-
-</div>
-
-<!-- CONQUISTAS -->
-<div class="card fade-up delay-3" style="margin-top:14px;">
-
-<div class="section-title">
-Conquistas
-</div>
-
-<div id="achievements-list"></div>
-
-</div>
-
-<!-- CONTATOS -->
-<div class="card fade-up delay-4" style="margin-top:14px;">
-
-<div class="section-title">
-Contatos de Emergência
-</div>
-
-<input id="trusted-name"
-placeholder="Nome"
-class="diary-search">
-
-<input id="trusted-phone"
-placeholder="Telefone"
-class="diary-search">
-
-<button class="save-btn"
-onclick="saveTrustedContact()">
-
-Salvar Contato
-
-</button>
-
-<div id="trusted-list"></div>
-
-</div>
-
-<!-- DADOS -->
-<div class="fade-up delay-5" style="margin-top:14px;">
-
-<div class="section-title">
-Dados
-</div>
-
-<button class="action-btn"
-onclick="exportData()">
-
-📤 Exportar meus dados
-
-</button>
-
-<button class="action-btn danger-btn"
-onclick="resetData()">
-
-🗑️ Resetar dados
-
-</button>
-
-</div>
-
-<!-- PRIVACIDADE -->
-<div class="info-badge fade-up delay-6"
-style="margin-top:14px;">
-
-Seus dados ficam protegidos
-e seguros no dispositivo
-e no Firebase.
-
-</div>
-
-<!-- PSICÓLOGOS -->
-<div class="card fade-up delay-7"
-style="margin-top:14px;">
-
-<div class="section-title">
-Psicólogos Confiáveis
-</div>
-
-<div class="diary-entry">
-
-Dr(a). Psicólogo(a) 1
-
-<br>
-
-📞 999999999
-
-</div>
-
-<div class="diary-entry">
-
-Dr(a). Psicólogo(a) 2
-
-<br>
-
-📞 999999999
-
-</div>
-
-</div>
-
-<!-- EQUIPE -->
-<div class="card fade-up delay-8"
-style="margin-top:14px;">
-
-<div class="section-title">
-Equipe de Desenvolvimento
-</div>
-
-<div class="team-name">
-
-<div class="team-role">
-Orientador
-</div>
-
-Joe Garcia Lima de Morais
-
-</div>
-
-<div class="team-name">
-
-<div class="team-role">
-Líder do Projeto & Desenvolvedor
-</div>
-
-Ernandes da Conceição Neves
-
-</div>
-
-<div class="team-name">
-
-<div class="team-role">
-Equipe de Apoio
-</div>
-
-Isnariane Pereira dos Santos
-
-</div>
-
-<div class="team-name">
-Nilmar das Neves Santos
-</div>
-
-<div class="team-name">
-Maria Iasmin Pires de Moraes
-</div>
-
-<div class="team-name">
-Evandro da Silva Barros
-</div>
-
-</div>
-
-</div>
-
-  </div>
-
-  <!-- CUSTOM SCROLLBAR (flutuante, uma por página) -->
-  <div class="custom-scrollbar" id="custom-scrollbar">
-    <div class="scrollbar-track"></div>
-    <div class="scrollbar-thumb" id="scrollbar-thumb"></div>
   </div>
 
   <!-- BOTTOM NAV -->
@@ -1445,6 +1698,12 @@ Evandro da Silva Barros
     <button class="nav-btn" data-page="exercises" onclick="navTo('exercises')">
       <span class="nav-icon">🌬️</span>Exercícios
     </button>
+    <button class="nav-btn" data-page="chat" onclick="navTo('chat')">
+      <span class="nav-icon">💬</span>Chat
+    </button>
+    <button class="nav-btn" data-page="contacts" onclick="navTo('contacts')">
+      <span class="nav-icon">👥</span>Contatos
+    </button>
     <button class="nav-btn" data-page="library" onclick="navTo('library')">
       <span class="nav-icon">📚</span>Biblioteca
     </button>
@@ -1454,14 +1713,49 @@ Evandro da Silva Barros
   </nav>
 </div>
 
-<!-- FLOATING ACTION BUTTONS -->
+<!-- ====================================================
+     FLOATING ACTION BUTTONS — NOVO
+     Grupo flutuante: ↑ subir | ↓ descer | ⟳ recarregar
+     Posicionado acima da bottom nav, canto inferior direito
+===================================================== -->
 <div class="fab-group" id="fab-group" aria-label="Navegação rápida">
-  <button class="fab-btn fab-top" id="fab-top" onclick="scrollPageTo('top')" data-tip="Ir ao topo" aria-label="Voltar ao topo" title="Ir ao topo">
+
+  <!-- ↑ Voltar ao topo (visível só quando há scroll) -->
+  <button
+    class="fab-btn fab-top"
+    id="fab-top"
+    onclick="scrollPageTo('top')"
+    data-tip="Ir ao topo"
+    aria-label="Voltar ao topo"
+    title="Ir ao topo"
+  >
     <span class="fab-icon">↑</span>
   </button>
-  <button class="fab-btn fab-bottom" id="fab-bottom" onclick="scrollPageTo('bottom')" data-tip="Ir ao final" aria-label="Ir ao final da página" title="Ir ao final">
+
+  <!-- ↓ Ir ao final -->
+  <button
+    class="fab-btn fab-bottom"
+    id="fab-bottom"
+    onclick="scrollPageTo('bottom')"
+    data-tip="Ir ao final"
+    aria-label="Ir ao final da página"
+    title="Ir ao final"
+  >
     <span class="fab-icon">↓</span>
   </button>
+
+  <!-- ⟳ Recarregar manualmente -->
+  <button
+    class="fab-btn fab-reload"
+    id="fab-reload"
+    onclick="manualReload()"
+    data-tip="Recarregar"
+    aria-label="Recarregar página"
+    title="Recarregar"
+  >
+    <span class="fab-icon" id="fab-reload-icon">⟳</span>
+  </button>
+
 </div>
 
 <!-- SOS MODAL -->
@@ -1475,6 +1769,7 @@ Evandro da Silva Barros
       <a href="tel:188" style="text-decoration:none;display:block;">
         <button class="call-btn">📞 Ligar para o CVV — 188</button>
       </a>
+      <div id="sos-trusted-contacts" style="margin-bottom:10px;"></div>
       <button class="modal-close" onclick="closeModal('sos-modal')">Fechar</button>
     </div>
   </div>
@@ -1502,6 +1797,56 @@ Evandro da Silva Barros
     <div class="modal-handle"></div>
     <div id="day-modal-inner"></div>
   </div>
+</div>
+
+<!-- ADD CONTACT MODAL — NOVA FUNCIONALIDADE -->
+<div class="modal-overlay" id="contact-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="contact-modal-title">Adicionar Contato</div>
+    <div class="form-group">
+      <label class="form-label">Nome completo</label>
+      <input type="text" class="form-input" id="contact-input-nome" placeholder="Nome do contato">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Telefone</label>
+      <input type="tel" class="form-input" id="contact-input-fone" placeholder="(00) 90000-0000">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Relação</label>
+      <input type="text" class="form-input" id="contact-input-rel" placeholder="Ex: Mãe, Amigo, Terapeuta...">
+    </div>
+    <div class="login-error" id="contact-error-msg"></div>
+    <button class="save-btn" onclick="saveContact()">💾 Salvar Contato</button>
+    <button class="modal-close" onclick="closeModal('contact-modal')">Cancelar</button>
+  </div>
+</div>
+
+<!-- ADD ADMIN MODAL — NOVA FUNCIONALIDADE -->
+<div class="modal-overlay" id="add-admin-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Adicionar Administrador</div>
+    <div class="form-group">
+      <label class="form-label">Email do administrador</label>
+      <input type="email" class="form-input" id="new-admin-email" placeholder="admin@email.com">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Senha de acesso</label>
+      <input type="password" class="form-input" id="new-admin-pw" placeholder="Mínimo 6 caracteres">
+    </div>
+    <div class="login-error" id="add-admin-error-msg"></div>
+    <button class="save-btn" onclick="saveNewAdmin()">💾 Salvar Administrador</button>
+    <button class="modal-close" onclick="closeModal('add-admin-modal')">Cancelar</button>
+  </div>
+</div>
+
+<!-- SOS ALERT OVERLAY — COLAR DE EMERGÊNCIA -->
+<div class="sos-alert-overlay" id="sos-alert-overlay">
+  <div class="sos-alert-icon">🆘</div>
+  <div class="sos-alert-title">Alerta Enviado!</div>
+  <div class="sos-alert-msg" id="sos-alert-msg">Seus contatos de confiança foram notificados sobre sua situação de emergência emocional.</div>
+  <button class="sos-alert-cancel" onclick="fecharSosAlert()">✅ Estou bem — Cancelar alerta</button>
 </div>
 
 <!-- TOAST -->
@@ -1575,11 +1920,47 @@ const EXERCISES = {
 };
 
 const LIBRARY_ARTICLES = [
-  { icon: "😟", title: "O que é ansiedade?", sub: "Entenda os sintomas e como lidar", content: `<p>A <strong>ansiedade</strong> é uma resposta natural do organismo a situações de estresse ou ameaça. Em doses moderadas, ela nos ajuda a ficar alertas e preparados. Porém, quando se torna excessiva, pode prejudicar a qualidade de vida.</p><br><p><strong>Sintomas comuns:</strong></p><p>• Preocupação excessiva e constante<br>• Tensão muscular<br>• Dificuldade para dormir<br>• Coração acelerado<br>• Sensação de que algo ruim vai acontecer</p><br><p><strong>O que ajuda:</strong></p><p>Exercícios de respiração, atividade física regular, reduzir cafeína, manter uma rotina de sono e buscar apoio profissional quando necessário.</p>` },
-  { icon: "😔", title: "Entendendo a depressão", sub: "Mais do que tristeza — é uma doença", content: `<p>A <strong>depressão</strong> é muito mais do que se sentir triste. É uma condição médica que afeta como você pensa, sente e realiza atividades do dia a dia. Ela não é fraqueza nem falta de vontade.</p><br><p><strong>Sinais importantes:</strong></p><p>• Tristeza persistente por mais de 2 semanas<br>• Perda de interesse em atividades prazerosas<br>• Alterações no sono e apetite<br>• Dificuldade de concentração<br>• Pensamentos negativos frequentes</p><br><p><strong>Lembre-se:</strong> depressão tem tratamento e você merece receber ajuda. Procure um médico ou psicólogo.</p>` },
-  { icon: "😡", title: "Como lidar com a raiva", sub: "Técnicas para gerenciar emoções intensas", content: `<p>A <strong>raiva</strong> é uma emoção humana válida. O problema não é sentir raiva, mas como expressamos ela. Quando não gerenciada, pode prejudicar relacionamentos e nossa saúde.</p><br><p><strong>Estratégias eficazes:</strong></p><p>• Faça uma pausa antes de reagir<br>• Respire fundo várias vezes<br>• Conte de 10 a 1 mentalmente<br>• Expresse o que sente com "eu" em vez de "você"<br>• Escreva o que está sentindo</p><br><p>A raiva controlada pode se tornar energia para mudanças positivas.</p>` },
-  { icon: "🌸", title: "Autocuidado emocional", sub: "Pequenas ações com grande impacto", content: `<p>O <strong>autocuidado</strong> não é egoísmo — é necessidade. Cuidar de si mesmo permite que você cuide melhor dos outros também.</p><br><p><strong>Práticas simples:</strong></p><p>• Durma de 7 a 9 horas por noite<br>• Hidrate-se bem durante o dia<br>• Mova-se por pelo menos 20 minutos<br>• Estabeleça limites saudáveis<br>• Reserve tempo para o que te faz feliz<br>• Desconecte-se das redes sociais regularmente</p><br><p>Pequenas ações diárias constroem uma base emocional sólida.</p>` },
-  { icon: "🩺", title: "Quando procurar ajuda profissional?", sub: "Reconheça os sinais e não espere mais", content: `<p>Muitas pessoas hesitam em buscar ajuda profissional. Mas existem sinais claros de que é hora de consultar um psicólogo ou psiquiatra:</p><br><p>• Sintomas persistem por mais de 2 semanas<br>• Dificuldade para realizar tarefas do cotidiano<br>• Pensamentos de se machucar ou machucar outros<br>• Uso de álcool ou substâncias para aliviar a dor<br>• Isolamento social progressivo<br>• Sensação de que "não tem jeito"</p><br><p><strong>Buscar ajuda é o ato mais corajoso que você pode fazer. Você merece cuidado profissional.</strong></p><br><p>📞 CVV: 188 (gratuito, 24h)</p>` },
+  {
+    icon: "😟", title: "O que é ansiedade?",
+    sub: "Entenda os sintomas e como lidar",
+    content: `<p>A <strong>ansiedade</strong> é uma resposta natural do organismo a situações de estresse ou ameaça. Em doses moderadas, ela nos ajuda a ficar alertas e preparados. Porém, quando se torna excessiva, pode prejudicar a qualidade de vida.</p>
+    <br><p><strong>Sintomas comuns:</strong></p>
+    <p>• Preocupação excessiva e constante<br>• Tensão muscular<br>• Dificuldade para dormir<br>• Coração acelerado<br>• Sensação de que algo ruim vai acontecer</p>
+    <br><p><strong>O que ajuda:</strong></p>
+    <p>Exercícios de respiração, atividade física regular, reduzir cafeína, manter uma rotina de sono e buscar apoio profissional quando necessário.</p>`
+  },
+  {
+    icon: "😔", title: "Entendendo a depressão",
+    sub: "Mais do que tristeza — é uma doença",
+    content: `<p>A <strong>depressão</strong> é muito mais do que se sentir triste. É uma condição médica que afeta como você pensa, sente e realiza atividades do dia a dia. Ela não é fraqueza nem falta de vontade.</p>
+    <br><p><strong>Sinais importantes:</strong></p>
+    <p>• Tristeza persistente por mais de 2 semanas<br>• Perda de interesse em atividades prazerosas<br>• Alterações no sono e apetite<br>• Dificuldade de concentração<br>• Pensamentos negativos frequentes</p>
+    <br><p><strong>Lembre-se:</strong> depressão tem tratamento e você merece receber ajuda. Procure um médico ou psicólogo.</p>`
+  },
+  {
+    icon: "😡", title: "Como lidar com a raiva",
+    sub: "Técnicas para gerenciar emoções intensas",
+    content: `<p>A <strong>raiva</strong> é uma emoção humana válida. O problema não é sentir raiva, mas como expressamos ela. Quando não gerenciada, pode prejudicar relacionamentos e nossa saúde.</p>
+    <br><p><strong>Estratégias eficazes:</strong></p>
+    <p>• Faça uma pausa antes de reagir<br>• Respire fundo várias vezes<br>• Conte de 10 a 1 mentalmente<br>• Expresse o que sente com "eu" em vez de "você"<br>• Escreva o que está sentindo</p>
+    <br><p>A raiva controlada pode se tornar energia para mudanças positivas.</p>`
+  },
+  {
+    icon: "🌸", title: "Autocuidado emocional",
+    sub: "Pequenas ações com grande impacto",
+    content: `<p>O <strong>autocuidado</strong> não é egoísmo — é necessidade. Cuidar de si mesmo permite que você cuide melhor dos outros também.</p>
+    <br><p><strong>Práticas simples:</strong></p>
+    <p>• Durma de 7 a 9 horas por noite<br>• Hidrate-se bem durante o dia<br>• Mova-se por pelo menos 20 minutos<br>• Estabeleça limites saudáveis<br>• Reserve tempo para o que te faz feliz<br>• Desconecte-se das redes sociais regularmente</p>
+    <br><p>Pequenas ações diárias constroem uma base emocional sólida.</p>`
+  },
+  {
+    icon: "🩺", title: "Quando procurar ajuda profissional?",
+    sub: "Reconheça os sinais e não espere mais",
+    content: `<p>Muitas pessoas hesitam em buscar ajuda profissional. Mas existem sinais claros de que é hora de consultar um psicólogo ou psiquiatra:</p>
+    <br><p>• Sintomas persistem por mais de 2 semanas<br>• Dificuldade para realizar tarefas do cotidiano<br>• Pensamentos de se machucar ou machucar outros<br>• Uso de álcool ou substâncias para aliviar a dor<br>• Isolamento social progressivo<br>• Sensação de que "não tem jeito"</p>
+    <br><p><strong>Buscar ajuda é o ato mais corajoso que você pode fazer. Você merece cuidado profissional.</strong></p>
+    <br><p>📞 CVV: 188 (gratuito, 24h)</p>`
+  },
 ];
 
 const ACHIEVEMENTS = [
@@ -1596,6 +1977,7 @@ let currentPage = 'home';
 let currentExTab = 'ansioso';
 let breathTimer = null;
 let breathActive = false;
+let exTimerInterval = null;
 let autosaveTimer = null;
 let diaryDraft = '';
 
@@ -1621,7 +2003,8 @@ function setData(key, val) {
 
   function createParticle() {
     return {
-      x: Math.random() * W, y: Math.random() * H,
+      x: Math.random() * W,
+      y: Math.random() * H,
       r: Math.random() * 2.5 + 0.5,
       dx: (Math.random() - 0.5) * 0.4,
       dy: (Math.random() - 0.5) * 0.4,
@@ -1630,7 +2013,10 @@ function setData(key, val) {
     };
   }
 
-  function init() { resize(); particles = Array.from({ length: 60 }, createParticle); }
+  function init() {
+    resize();
+    particles = Array.from({ length: 60 }, createParticle);
+  }
 
   function draw() {
     ctx.clearRect(0, 0, W, H);
@@ -1654,305 +2040,125 @@ function setData(key, val) {
   init(); draw();
 })();
 
-// =====================================================
-// BLOQUEIO DE PULL-TO-REFRESH — Android WebView
-// Estratégia multicamada para máxima compatibilidade
-// =====================================================
-(function blockPullToRefresh() {
+// ====== SCROLL PROGRESS BARS ======
+function setupScrollProgress() {
+  const pages = ['home', 'diary', 'exercises', 'library', 'profile'];
+  pages.forEach(pageId => {
+    const page = document.getElementById('page-' + pageId);
+    const bar = document.getElementById('progress-' + pageId);
+    if (!page || !bar) return;
 
-  // ── Camada 1: Intercepta touchstart para rastrear posição ──
+    page.addEventListener('scroll', () => {
+      const scrollTop = page.scrollTop;
+      const scrollHeight = page.scrollHeight - page.clientHeight;
+      if (scrollHeight <= 0) { bar.style.width = '0%'; return; }
+      const pct = Math.min(100, (scrollTop / scrollHeight) * 100);
+      bar.style.width = pct + '%';
+
+      // Atualiza visibilidade do botão FAB ↑
+      updateFabTopVisibility(scrollTop);
+    });
+  });
+}
+
+// ====== PREVENT PULL-TO-REFRESH ======
+// Método 1: CSS overscroll-behavior (já aplicado no CSS acima)
+// Método 2: Bloqueio via touchmove no JS (compatibilidade máxima com Android WebView)
+(function preventPullToRefresh() {
   let startY = 0;
-  let startX = 0;
-  let isScrolling = false;   // scroll vertical detectado
-  let touchTarget = null;
+  let isDragging = false;
 
   document.addEventListener('touchstart', function(e) {
     startY = e.touches[0].clientY;
-    startX = e.touches[0].clientX;
-    isScrolling = false;
-    touchTarget = e.target;
+    isDragging = true;
   }, { passive: true });
 
-  // ── Camada 2: touchmove — bloqueia pull-to-refresh sem travar scroll ──
   document.addEventListener('touchmove', function(e) {
-    if (!e.cancelable) return; // Safari: não tenta cancelar se já processado
+    if (!isDragging) return;
 
-    const dy = e.touches[0].clientY - startY;
-    const dx = e.touches[0].clientX - startX;
+    const currentY = e.touches[0].clientY;
+    const deltaY = currentY - startY;
 
-    // Detecta se é scroll horizontal (tabs, etc.) — deixa passar
-    if (Math.abs(dx) > Math.abs(dy) && !isScrolling) return;
+    // Encontra o elemento com scroll ativo
+    const activePage = document.querySelector('.page.active');
 
-    // Detecta elemento scrollável ancestral
-    const scrollable = findScrollableParent(touchTarget);
+    // Se não há modal aberto e a página ativa está no topo, bloqueia pull-down
+    if (activePage) {
+      const atTop = activePage.scrollTop <= 0;
+      const atBottom = activePage.scrollTop >= (activePage.scrollHeight - activePage.clientHeight - 1);
 
-    if (scrollable) {
-      const atTop    = scrollable.scrollTop <= 0;
-      const atBottom = scrollable.scrollTop >= (scrollable.scrollHeight - scrollable.clientHeight - 1);
-
-      // No topo e puxando para BAIXO → pull-to-refresh → BLOQUEIA
-      if (atTop && dy > 0) {
-        e.preventDefault();
+      // Bloqueia pull-to-refresh: quando no topo e puxando para baixo
+      if (atTop && deltaY > 0) {
+        // Previne o comportamento padrão somente se não for scroll interno
+        if (e.cancelable) e.preventDefault();
         return;
       }
 
-      // No fundo e puxando para CIMA (rubber band iOS) → deixa mas não propaga
-      // Na verdade, o overscroll-behavior:contain no CSS já cuida disso
-      // mas reforçamos aqui para WebViews legados
-      if (atBottom && dy < 0) {
-        // Não bloqueia — permite o scroll interno naturalmente
-        isScrolling = true;
-        return;
+      // Opcional: bloqueia bounce no iOS quando no final
+      if (atBottom && deltaY < 0) {
+        // Deixa rolar normalmente (não bloqueia)
       }
-
-      isScrolling = true;
-
     } else {
-      // Sem elemento scrollável → qualquer drag é pull-to-refresh → BLOQUEIA
-      e.preventDefault();
+      // Se nenhuma página ativa, bloqueia todo scroll vertical no body
+      if (e.cancelable) e.preventDefault();
     }
-
   }, { passive: false });
 
   document.addEventListener('touchend', function() {
-    isScrolling = false;
-    touchTarget = null;
-  }, { passive: true });
-
-  // Encontra o ancestral scrollável mais próximo do elemento tocado
-  function findScrollableParent(el) {
-    if (!el || el === document.body) return null;
-
-    // Verifica se o próprio elemento é scrollável verticalmente
-    const style = window.getComputedStyle(el);
-    const overflow = style.overflowY;
-    const isScrollable = (overflow === 'auto' || overflow === 'scroll') && el.scrollHeight > el.clientHeight;
-
-    if (isScrollable) return el;
-    return findScrollableParent(el.parentElement);
-  }
-
-  // ── Camada 3: Bloqueia via meta tag programaticamente (para WebViews) ──
-  // Alguns WebViews Android ignoram CSS e precisam do JS
-  document.body.addEventListener('touchmove', function(e) {
-    // Só bloqueia se não há scrollable parent
-    const scrollable = findScrollableParent(e.target);
-    if (!scrollable && e.cancelable) {
-      e.preventDefault();
-    }
-  }, { passive: false });
-
-})();
-
-// =====================================================
-// CUSTOM SCROLLBAR FLUTUANTE
-// Sincroniza com a .page ativa, draggable via touch e mouse
-// =====================================================
-(function setupCustomScrollbar() {
-  const scrollbarEl  = document.getElementById('custom-scrollbar');
-  const thumbEl      = document.getElementById('scrollbar-thumb');
-  const trackEl      = scrollbarEl.querySelector('.scrollbar-track');
-
-  let hideTimeout    = null;
-  let isDragging     = false;
-  let dragStartY     = 0;
-  let dragStartScroll = 0;
-  let currentPage    = null;  // referência à .page ativa
-  let rafId          = null;
-
-  // ── Recalcula posição e tamanho do thumb ──
-  function updateThumb(page) {
-    if (!page || !thumbEl || !trackEl) return;
-
-    const scrollTop    = page.scrollTop;
-    const scrollHeight = page.scrollHeight;
-    const clientHeight = page.clientHeight;
-
-    // Sem conteúdo scrollável → esconde a barra
-    if (scrollHeight <= clientHeight + 4) {
-      scrollbarEl.classList.remove('visible');
-      return;
-    }
-
-    scrollbarEl.classList.add('visible');
-
-    const trackHeight  = trackEl.offsetHeight;
-    // Thumb proporcional ao conteúdo visível
-    const thumbH       = Math.max(36, (clientHeight / scrollHeight) * trackHeight);
-    const maxThumbTop  = trackHeight - thumbH;
-    const thumbTop     = (scrollTop / (scrollHeight - clientHeight)) * maxThumbTop;
-
-    thumbEl.style.height = thumbH + 'px';
-    thumbEl.style.top    = thumbTop + 'px';
-  }
-
-  // ── Mostra e agenda ocultação automática ──
-  function showScrollbar(page) {
-    updateThumb(page);
-    clearTimeout(hideTimeout);
-    hideTimeout = setTimeout(() => {
-      if (!isDragging) scrollbarEl.classList.remove('visible');
-    }, 1400);
-  }
-
-  // ── Listener de scroll na .page ──
-  function onPageScroll(e) {
-    const page = e.currentTarget;
-    showScrollbar(page);
-
-    // Atualiza barra de progresso
-    const pageId = page.id.replace('page-', '');
-    const bar = document.getElementById('progress-' + pageId);
-    if (bar) {
-      const pct = page.scrollHeight - page.clientHeight > 0
-        ? (page.scrollTop / (page.scrollHeight - page.clientHeight)) * 100 : 0;
-      bar.style.width = Math.min(100, pct) + '%';
-    }
-
-    // Botão FAB ↑
-    updateFabTopVisibility(page.scrollTop);
-  }
-
-  // ── Posiciona a scrollbar verticalmente relativa ao .pages container ──
-  function positionScrollbar() {
-    const pagesEl = document.getElementById('pages-container');
-    if (!pagesEl || !scrollbarEl) return;
-    const rect = pagesEl.getBoundingClientRect();
-    scrollbarEl.style.top    = rect.top + 'px';
-    scrollbarEl.style.height = rect.height + 'px';
-    scrollbarEl.style.bottom = 'auto';
-  }
-
-  // ── Registra e desregistra listeners ao trocar de página ──
-  window._scrollbarSetPage = function(page) {
-    // Remove listeners de páginas anteriores
-    document.querySelectorAll('.page').forEach(p => {
-      p.removeEventListener('scroll', onPageScroll);
-    });
-
-    currentPage = page;
-    if (!page) { scrollbarEl.classList.remove('visible'); return; }
-
-    page.addEventListener('scroll', onPageScroll, { passive: true });
-    positionScrollbar();
-    updateThumb(page);
-
-    // Mostra brevemente ao trocar de aba
-    showScrollbar(page);
-  };
-
-  // ── DRAG — Mouse ──
-  thumbEl.addEventListener('mousedown', function(e) {
-    e.preventDefault();
-    startDrag(e.clientY);
-  });
-
-  document.addEventListener('mousemove', function(e) {
-    if (!isDragging) return;
-    doDrag(e.clientY);
-  });
-
-  document.addEventListener('mouseup', function() {
-    endDrag();
-  });
-
-  // ── DRAG — Touch ──
-  thumbEl.addEventListener('touchstart', function(e) {
-    e.stopPropagation(); // não propaga para o bloqueador de pull-to-refresh
-    startDrag(e.touches[0].clientY);
-  }, { passive: true });
-
-  thumbEl.addEventListener('touchmove', function(e) {
-    e.stopPropagation();
-    if (!isDragging) return;
-    if (e.cancelable) e.preventDefault(); // previne scroll da página enquanto draga
-    doDrag(e.touches[0].clientY);
-  }, { passive: false });
-
-  thumbEl.addEventListener('touchend', function(e) {
-    e.stopPropagation();
-    endDrag();
-  }, { passive: true });
-
-  // ── CLIQUE NA TRACK (salta scroll) ──
-  trackEl.addEventListener('click', function(e) {
-    if (!currentPage) return;
-    const rect      = trackEl.getBoundingClientRect();
-    const clickY    = e.clientY - rect.top;
-    const ratio     = clickY / trackEl.offsetHeight;
-    const maxScroll = currentPage.scrollHeight - currentPage.clientHeight;
-    currentPage.scrollTo({ top: ratio * maxScroll, behavior: 'smooth' });
-  });
-
-  function startDrag(clientY) {
-    if (!currentPage) return;
-    isDragging     = true;
-    dragStartY     = clientY;
-    dragStartScroll = currentPage.scrollTop;
-    thumbEl.classList.add('dragging');
-    scrollbarEl.classList.add('visible');
-    clearTimeout(hideTimeout);
-  }
-
-  function doDrag(clientY) {
-    if (!isDragging || !currentPage) return;
-
-    const dy          = clientY - dragStartY;
-    const trackH      = trackEl.offsetHeight;
-    const thumbH      = parseFloat(thumbEl.style.height) || 36;
-    const maxThumbTop = trackH - thumbH;
-    const maxScroll   = currentPage.scrollHeight - currentPage.clientHeight;
-
-    if (maxThumbTop <= 0) return;
-
-    const scrollDelta = (dy / maxThumbTop) * maxScroll;
-    currentPage.scrollTop = Math.max(0, Math.min(maxScroll, dragStartScroll + scrollDelta));
-    updateThumb(currentPage);
-  }
-
-  function endDrag() {
-    if (!isDragging) return;
     isDragging = false;
-    thumbEl.classList.remove('dragging');
-    hideTimeout = setTimeout(() => scrollbarEl.classList.remove('visible'), 1400);
-  }
-
-  // Reposiciona em resize
-  window.addEventListener('resize', positionScrollbar);
-  positionScrollbar();
-
+  }, { passive: true });
 })();
 
-// =====================================================
-// SCROLL PROGRESS BARS + FAB top visibility
-// (agora gerenciados dentro do custom scrollbar handler)
-// =====================================================
+// ====== FAB — FLOATING ACTION BUTTONS ======
 
-// ====== FAB ======
 function getActivePage() {
   return document.querySelector('.page.active');
 }
 
+/** Scroll suave para topo ou fundo da página ativa */
 function scrollPageTo(direction) {
   const page = getActivePage();
   if (!page) return;
+
   if (direction === 'top') {
     page.scrollTo({ top: 0, behavior: 'smooth' });
-  } else {
+  } else if (direction === 'bottom') {
     page.scrollTo({ top: page.scrollHeight, behavior: 'smooth' });
   }
 }
 
+/** Recarregar manualmente com feedback visual */
+function manualReload() {
+  const btn = document.getElementById('fab-reload');
+  const icon = document.getElementById('fab-reload-icon');
+
+  // Feedback visual: gira o ícone
+  btn.classList.add('spinning');
+  if (icon) icon.style.display = 'inline-block';
+
+  showToast('🔄 Recarregando...');
+
+  // Aguarda a animação e recarrega
+  setTimeout(() => {
+    btn.classList.remove('spinning');
+    window.location.reload();
+  }, 500);
+}
+
+/** Mostra/esconde o botão ↑ baseado no scroll da página ativa */
 function updateFabTopVisibility(scrollTop) {
   const fabTop = document.getElementById('fab-top');
   if (!fabTop) return;
-  if (scrollTop > 80) {
+
+  const threshold = 80; // px de scroll para o botão aparecer
+  if (scrollTop > threshold) {
     fabTop.classList.add('visible');
   } else {
     fabTop.classList.remove('visible');
   }
 }
 
+/** Oculta FABs quando um modal está aberto para não sobrepor */
 function updateFabVisibility() {
   const fabGroup = document.getElementById('fab-group');
   if (!fabGroup) return;
@@ -1965,26 +2171,24 @@ function updateFabVisibility() {
 function navTo(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-
-  const pageEl = document.getElementById('page-' + page);
-  pageEl.classList.add('active');
+  document.getElementById('page-' + page).classList.add('active');
   document.querySelector(`[data-page="${page}"]`)?.classList.add('active');
   currentPage = page;
 
-  // Reset scroll
-  pageEl.scrollTop = 0;
+  // Reset scroll and progress bar for the new page
+  const pageEl = document.getElementById('page-' + page);
+  if (pageEl) pageEl.scrollTop = 0;
   const bar = document.getElementById('progress-' + page);
   if (bar) bar.style.width = '0%';
 
-  // Conecta scrollbar à nova página
-  if (window._scrollbarSetPage) window._scrollbarSetPage(pageEl);
+  // Reset botão ↑ ao trocar de página (começa no topo)
   updateFabTopVisibility(0);
 
-  if (page === 'home')      renderHome();
-  if (page === 'diary')     renderDiary();
+  if (page === 'home') renderHome();
+  if (page === 'diary') renderDiary();
   if (page === 'exercises') renderExercises();
-  if (page === 'library')   renderLibrary();
-  if (page === 'profile')   renderProfile();
+  if (page === 'library') renderLibrary();
+  if (page === 'profile') renderProfile();
 }
 
 // ====== TOAST ======
@@ -2087,6 +2291,7 @@ function renderWeekChart() {
     const dayName = days[d.getDay()];
     const score = data ? data.score : 0;
     const isToday = key === today;
+
     const emColor = data ? (data.color || EMOTIONS.find(e => e.id === data.id)?.color || '#6f6bd8') : null;
     weekData.push({ score, data, dayName, key, d, isToday, emColor });
 
@@ -2149,12 +2354,15 @@ function renderWeekChart() {
 function renderMoodLine(weekData) {
   const svg = document.getElementById('mood-line-chart');
   if (!svg) return;
+
   const w = 300, h = 60;
   const points = weekData.map((d, i) => ({
     x: (i / (weekData.length - 1)) * (w - 20) + 10,
     y: d.score > 0 ? h - 6 - ((d.score / 9) * (h - 16)) : null,
-    color: d.emColor || '#b39dff', data: d.data,
+    color: d.emColor || '#b39dff',
+    data: d.data,
   }));
+
   const allValid = points.filter(p => p.y !== null);
   if (allValid.length < 2) { svg.innerHTML = ''; return; }
 
@@ -2177,21 +2385,35 @@ function renderMoodLine(weekData) {
 
   const pathD = catmullRom(allValid);
   const areaD = pathD + ` L ${allValid[allValid.length-1].x},${h} L ${allValid[0].x},${h} Z`;
+
   const gid = 'mg' + Date.now();
   const lgid = 'lg' + Date.now();
-  const colorStops = allValid.map(p => `<stop offset="${Math.round((p.x/w)*100)}%" stop-color="${p.color}"/>`).join('');
-  const areaStops = allValid.map(p => `<stop offset="${Math.round((p.x/w)*100)}%" stop-color="${p.color}44"/>`).join('');
-  const dots = allValid.map(p => `<circle cx="${p.x}" cy="${p.y}" r="4" fill="${p.color}" opacity="0.25"/><circle cx="${p.x}" cy="${p.y}" r="2.8" fill="${p.color}" opacity="1"/>`).join('');
+
+  const colorStops = allValid.map((p) => {
+    const pct = Math.round((p.x / w) * 100);
+    return `<stop offset="${pct}%" stop-color="${p.color}"/>`;
+  }).join('');
+
+  const areaStops = allValid.map((p) => {
+    const pct = Math.round((p.x / w) * 100);
+    return `<stop offset="${pct}%" stop-color="${p.color}44"/>`;
+  }).join('');
+
+  const dots = allValid.map(p => `
+    <circle cx="${p.x}" cy="${p.y}" r="4" fill="${p.color}" opacity="0.25"/>
+    <circle cx="${p.x}" cy="${p.y}" r="2.8" fill="${p.color}" opacity="1"/>
+  `).join('');
 
   svg.innerHTML = `
     <defs>
       <linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="0">${colorStops}</linearGradient>
       <linearGradient id="${lgid}" x1="0" y1="0" x2="1" y2="0">${areaStops}</linearGradient>
     </defs>
-    <path d="${areaD}" fill="url(#${lgid})"/>
+    <path d="${areaD}" fill="url(#${lgid})" />
     <path d="${pathD}" fill="none" stroke="url(#${gid})" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     ${dots}
   `;
+
   const linePath = svg.querySelectorAll('path')[1];
   if (linePath) {
     const len = linePath.getTotalLength?.() || 300;
@@ -2205,11 +2427,13 @@ function renderMoodLine(weekData) {
 function openDayModal(key, data, dayName, d) {
   const inner = document.getElementById('day-modal-inner');
   const dateStr = d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+
   const diaryEntries = getData('diary', []).filter(e => {
     const eDate = new Date(e.ts);
     const eKey = `${eDate.getFullYear()}-${eDate.getMonth()+1}-${eDate.getDate()}`;
     return eKey === key;
   });
+
   inner.innerHTML = `
     <div class="modal-title">${dateStr}</div>
     ${data ? `
@@ -2220,7 +2444,11 @@ function openDayModal(key, data, dayName, d) {
     ${diaryEntries.length > 0 ? `
       <div style="margin-top:16px;">
         <div class="section-title" style="margin-bottom:10px">📖 Anotações do dia</div>
-        ${diaryEntries.map(e => `<div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;"><p style="font-size:0.82rem;color:var(--text2);line-height:1.6">${e.text.replace(/\n/g,'<br>')}</p></div>`).join('')}
+        ${diaryEntries.map(e => `
+          <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;">
+            <p style="font-size:0.82rem;color:var(--text2);line-height:1.6">${e.text.replace(/\n/g, '<br>')}</p>
+          </div>
+        `).join('')}
       </div>
     ` : ''}
     <button class="modal-close" onclick="closeModal('day-modal')">Fechar</button>
@@ -2245,8 +2473,13 @@ function checkCrisis() {
   const allNeg = recent.length >= 3 && recent.every(e => negIds.includes(e.id));
   const banner = document.getElementById('crisis-banner');
   const sosBtn = document.getElementById('sos-btn');
-  if (allNeg) { banner.classList.add('show'); sosBtn.classList.add('crisis'); }
-  else { banner.classList.remove('show'); sosBtn.classList.remove('crisis'); }
+  if (allNeg) {
+    banner.classList.add('show');
+    sosBtn.classList.add('crisis');
+  } else {
+    banner.classList.remove('show');
+    sosBtn.classList.remove('crisis');
+  }
 }
 
 // ====== STREAK ======
@@ -2254,11 +2487,16 @@ function updateStreak() {
   let streak = getData('streak', { count: 0, lastDate: null });
   const today = getTodayKey();
   const yesterday = (() => { const d = new Date(); d.setDate(d.getDate()-1); return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`; })();
+
   if (streak.lastDate === today) return;
-  if (streak.lastDate === yesterday) { streak.count++; }
-  else if (streak.lastDate !== today) { streak.count = 1; }
+  if (streak.lastDate === yesterday) {
+    streak.count++;
+  } else if (streak.lastDate !== today) {
+    streak.count = 1;
+  }
   streak.lastDate = today;
   setData('streak', streak);
+
   if (streak.count >= 3) checkAchievement('streak_3');
   if (streak.count >= 7) checkAchievement('streak_7');
   updateStreakDisplay();
@@ -2302,6 +2540,7 @@ function renderDiary() {
       diaryDraft = text;
       updateCharCounter(text.length);
       updateSaveBtn(text.length);
+
       clearTimeout(autosaveTimer);
       setAutosaveState('saving', 'Salvando rascunho...');
       autosaveTimer = setTimeout(() => {
@@ -2336,16 +2575,25 @@ function setAutosaveState(state, text) {
 function renderDiaryList(entries, query = '') {
   const list = document.getElementById('diary-list');
   const badge = document.getElementById('diary-count-badge');
+
   let filtered = entries;
-  if (query) filtered = entries.filter(e => e.text.toLowerCase().includes(query.toLowerCase()));
+  if (query) {
+    filtered = entries.filter(e => e.text.toLowerCase().includes(query.toLowerCase()));
+  }
+
   if (badge) badge.textContent = filtered.length > 0 ? `${filtered.length} registro${filtered.length !== 1 ? 's' : ''}` : '';
 
   if (!filtered.length) {
-    list.innerHTML = `<div class="diary-empty"><div class="diary-empty-icon">${query ? '🔍' : '📖'}</div><p>${query ? 'Nenhum registro encontrado.' : 'Nenhum registro ainda.<br>Escreva algo sobre como está se sentindo.'}</p></div>`;
+    list.innerHTML = `
+      <div class="diary-empty">
+        <div class="diary-empty-icon">${query ? '🔍' : '📖'}</div>
+        <p>${query ? 'Nenhum registro encontrado.' : 'Nenhum registro ainda.<br>Escreva algo sobre como está se sentindo.'}</p>
+      </div>`;
     return;
   }
 
   const sorted = [...filtered].sort((a, b) => (b.ts || 0) - (a.ts || 0));
+
   list.innerHTML = sorted.map((e, i) => {
     const realIdx = entries.indexOf(e);
     const isLong = e.text.length > 200;
@@ -2384,20 +2632,32 @@ function saveDiary() {
   const input = document.getElementById('diary-input');
   const text = input.value.trim();
   if (!text) { showToast('Escreva algo antes de salvar 📝'); return; }
+
   const entries = getData('diary', []);
   const now = new Date();
+
   const todayKey = getTodayKey();
   const todayEmotion = getData('day_' + todayKey, null);
-  const entry = { text, date: now.toLocaleString('pt-BR'), ts: Date.now(), emotion: todayEmotion ? { emoji: todayEmotion.emoji, label: todayEmotion.label } : null };
+
+  const entry = {
+    text,
+    date: now.toLocaleString('pt-BR'),
+    ts: Date.now(),
+    emotion: todayEmotion ? { emoji: todayEmotion.emoji, label: todayEmotion.label } : null
+  };
+
   entries.push(entry);
   setData('diary', entries);
+
   setData('diary_draft', '');
   input.value = '';
   updateCharCounter(0);
   updateSaveBtn(0);
   setAutosaveState('', '');
+
   renderDiaryList(entries, '');
   showToast('✅ Registro salvo com sucesso!');
+
   if (entries.length >= 3) checkAchievement('diary_3');
 }
 
@@ -2415,9 +2675,11 @@ function deleteDiary(idx, event) {
 function renderExercises() {
   const tabs = document.getElementById('exercise-tabs');
   const list = document.getElementById('exercise-list');
+
   tabs.innerHTML = Object.entries(EXERCISES).map(([key, val]) =>
     `<button class="ex-tab ${currentExTab === key ? 'active' : ''}" onclick="setExTab('${key}')">${val.label}</button>`
   ).join('');
+
   const cat = EXERCISES[currentExTab];
   list.innerHTML = cat.items.map(ex => `
     <div class="exercise-card fade-up">
@@ -2445,10 +2707,12 @@ function openExercise(exId) {
   const allEx = Object.values(EXERCISES).flatMap(c => c.items);
   const ex = allEx.find(e => e.id === exId);
   if (!ex) return;
+
   const inner = document.getElementById('ex-modal-inner');
+
   if (ex.type === 'breathing') { inner.innerHTML = buildBreathingUI(ex); openModal('ex-modal'); return; }
   if (ex.type === 'countdown') { inner.innerHTML = buildCountdownUI(ex); openModal('ex-modal'); return; }
-  if (ex.type === 'guided')   { inner.innerHTML = buildGuidedUI(ex);   openModal('ex-modal'); return; }
+  if (ex.type === 'guided') { inner.innerHTML = buildGuidedUI(ex); openModal('ex-modal'); return; }
 }
 
 // ====== BREATHING ======
@@ -2478,6 +2742,7 @@ function startBreathing() {
   if (breathActive) return;
   breathActive = true;
   document.getElementById('breath-start-btn').disabled = true;
+
   let bc = getData('breath_count', 0) + 1;
   setData('breath_count', bc);
   if (bc >= 5) checkAchievement('breath_5');
@@ -2499,20 +2764,26 @@ function startBreathing() {
     const phaseEl = document.getElementById('breath-phase');
     const countEl = document.getElementById('breath-count');
     const innerEl = document.getElementById('breath-inner');
+
     if (!core) { breathActive = false; return; }
+
     phaseEl.textContent = phase.text;
     innerEl.textContent = phase.text;
     core.style.animation = `${phase.anim} ${phase.duration}ms ease-in-out both`;
+
     clearInterval(countInterval);
     countdown = phase.duration / 1000;
     countEl.textContent = countdown;
+
     countInterval = setInterval(() => {
       countdown--;
       if (countEl) countEl.textContent = countdown > 0 ? countdown : '';
     }, 1000);
+
     phaseIdx++;
     breathTimer = setTimeout(runPhase, phase.duration);
   }
+
   runPhase();
 }
 
@@ -2553,11 +2824,16 @@ function startCountdown(total) {
   let t = total;
   const el = document.getElementById('ex-timer');
   if (el) el.textContent = t;
+
   countdownInterval = setInterval(() => {
     t--;
     const el2 = document.getElementById('ex-timer');
     if (el2) el2.textContent = t;
-    if (t <= 0) { clearInterval(countdownInterval); if (el2) el2.textContent = '✅'; showToast('🎉 Exercício concluído!'); }
+    if (t <= 0) {
+      clearInterval(countdownInterval);
+      if (el2) el2.textContent = '✅';
+      showToast('🎉 Exercício concluído!');
+    }
   }, 1000);
 }
 
@@ -2618,11 +2894,22 @@ function renderProfile() {
   const history = getData('emotion_history', []);
   const diary = getData('diary', []);
   const streak = getData('streak', { count: 0 });
+
   document.getElementById('stat-grid').innerHTML = `
-    <div class="stat-card"><div class="stat-value">${history.length}</div><div class="stat-label">Check-ins</div></div>
-    <div class="stat-card"><div class="stat-value">${streak.count || 0}</div><div class="stat-label">Dias seguidos</div></div>
-    <div class="stat-card"><div class="stat-value">${diary.length}</div><div class="stat-label">Diário</div></div>
+    <div class="stat-card">
+      <div class="stat-value">${history.length}</div>
+      <div class="stat-label">Check-ins</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${streak.count || 0}</div>
+      <div class="stat-label">Dias seguidos</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${diary.length}</div>
+      <div class="stat-label">Diário</div>
+    </div>
   `;
+
   const unlocked = getData('achievements', []);
   document.getElementById('achievements-list').innerHTML = ACHIEVEMENTS.map(a => `
     <div class="achievement-row">
@@ -2648,14 +2935,16 @@ function exportData() {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'sos-eficiencia-dados.json'; a.click();
-  URL.revokeObjectURL(url);
+  a.href = url; a.download = 'sos-eficiencia-dados.json';
+  a.click(); URL.revokeObjectURL(url);
   showToast('📤 Dados exportados!');
 }
 
 function resetData() {
   if (!confirm('Tem certeza? Todos os seus dados serão apagados permanentemente.')) return;
-  ['emotion_history','diary','streak','achievements','breath_count','diary_draft'].forEach(k => localStorage.removeItem('sos_' + k));
+  ['emotion_history','diary','streak','achievements','breath_count','diary_draft'].forEach(k => {
+    localStorage.removeItem('sos_' + k);
+  });
   Object.keys(localStorage).filter(k => k.startsWith('sos_day_')).forEach(k => localStorage.removeItem(k));
   showToast('🗑️ Dados resetados');
   renderProfile();
@@ -2663,97 +2952,662 @@ function resetData() {
 
 // ====== INIT ======
 function init() {
+  setupScrollProgress();
   updateStreak();
   renderHome();
+  // Inicializa estado do botão ↑ (começa escondido)
   updateFabTopVisibility(0);
-
-  // Conecta scrollbar à página inicial
-  const initialPage = document.getElementById('page-home');
-  if (window._scrollbarSetPage) window._scrollbarSetPage(initialPage);
 }
 
 init();
-  const firebaseConfig = {
-const firebaseConfig = {
-  apiKey: "AIzaSyD9ghK-5bBjDlEpvWZZk2z7OCKxErAXIZ4",
-  authDomain: "sos-eficiencia.firebaseapp.com",
-  projectId: "sos-eficiencia",
-  storageBucket: "sos-eficiencia.firebasestorage.app",
-  messagingSenderId: "106344320886",
-  appId: "1:106344320886:web:bcba55904e8620dabf7457",
-  measurementId: "G-N5NHXT8B30"
-};
 
-firebase.initializeApp(firebaseConfig);
+// ====================================================
+// NOVAS FUNCIONALIDADES — JAVASCRIPT ADICIONAL
+// ====================================================
 
-const auth = firebase.auth();
+// ---------- DADOS PADRÃO ----------
+const DEFAULT_PSYCHOLOGISTS = [
+  { id:'p1', nome:'Dra. Ana Paula Souza', spec:'Terapia Cognitivo-Comportamental', crp:'CRP 06/99999', fone:'999999999', email:'ana.paula@email.com', avatar:'👩‍⚕️' },
+  { id:'p2', nome:'Dr. Marcos Oliveira', spec:'Psicanálise e Ansiedade', crp:'CRP 06/88888', fone:'999999999', email:'marcos.oliveira@email.com', avatar:'👨‍⚕️' },
+  { id:'p3', nome:'Dra. Fernanda Lima', spec:'Saúde Mental Infanto-Juvenil', crp:'CRP 06/77777', fone:'999999999', email:'fernanda.lima@email.com', avatar:'👩‍⚕️' },
+  { id:'p4', nome:'Dr. Ricardo Alves', spec:'Depressão e Transtornos do Humor', crp:'CRP 06/66666', fone:'999999999', email:'ricardo.alves@email.com', avatar:'👨‍⚕️' },
+];
 
-const db = firebase.firestore();
+const DEFAULT_ADMIN_PW = '9784512';
+let isAdminLoggedIn = false;
+let necklaceClicks = 0;
+let necklaceResetTimer = null;
+let editingContactIdx = null;
 
-async function googleLogin() {
+// ---------- AUTH / USUÁRIOS ----------
+function getUsers() { return getData('users', []); }
+function setUsers(u) { setData('users', u); }
+function getAdmins() {
+  const a = getData('admins', null);
+  if (!a) { const d = [{ email:'admin@sos.com', pw: DEFAULT_ADMIN_PW }]; setData('admins', d); return d; }
+  return a;
+}
+function setAdmins(a) { setData('admins', a); }
+function getCurrentUser() { return getData('current_user', null); }
 
-  try {
-
-    const provider =
-      new firebase.auth.GoogleAuthProvider();
-
-    const result =
-      await auth.signInWithPopup(provider);
-
-    const user = result.user;
-
-    console.log(user);
-
-    alert("Login realizado!");
-
-    document.getElementById(
-      "login-screen"
-    ).style.display = "none";
-
-  } catch (e) {
-
-    console.error(e);
-
-    alert(e.message);
-
-  }
-
+function switchLoginTab(tab) {
+  document.getElementById('tab-entrar').classList.toggle('active', tab === 'entrar');
+  document.getElementById('tab-cadastrar').classList.toggle('active', tab === 'cadastrar');
+  document.getElementById('login-form-entrar').style.display = tab === 'entrar' ? 'flex' : 'none';
+  document.getElementById('login-form-cadastrar').style.display = tab === 'cadastrar' ? 'flex' : 'none';
 }
 
-auth.onAuthStateChanged((user)=>{
+function showLoginError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
 
- const loginScreen =
- document.getElementById("login-screen");
+function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pw = document.getElementById('login-senha').value;
+  if (!email || !pw) { showLoginError('login-error-msg', 'Preencha todos os campos.'); return; }
+  const users = getUsers();
+  const user = users.find(u => u.email === email && u.pw === pw);
+  if (!user) { showLoginError('login-error-msg', 'Email ou senha incorretos.'); return; }
+  setData('current_user', user);
+  logActivity(user.email);
+  enterApp(user);
+}
 
- if(user){
+function doRegistrar() {
+  const nome = document.getElementById('reg-nome').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pw = document.getElementById('reg-senha').value;
+  if (!nome || !email || !pw) { showLoginError('reg-error-msg', 'Preencha todos os campos.'); return; }
+  if (pw.length < 6) { showLoginError('reg-error-msg', 'Senha deve ter pelo menos 6 caracteres.'); return; }
+  const users = getUsers();
+  if (users.find(u => u.email === email)) { showLoginError('reg-error-msg', 'Email já cadastrado.'); return; }
+  const novo = { nome, email, pw, avatar: '🌸', criadoEm: new Date().toISOString(), metodo: 'email' };
+  users.push(novo); setUsers(users);
+  setData('current_user', novo);
+  logActivity(email);
+  enterApp(novo);
+}
 
-   loginScreen.style.display = "none";
+function doGoogleLogin() {
+  // Simulação de OAuth Google (frontend-only)
+  const googleUser = {
+    nome: 'Usuário Google',
+    email: 'usuario@gmail.com',
+    avatar: '🔵',
+    criadoEm: new Date().toISOString(),
+    metodo: 'google'
+  };
+  const users = getUsers();
+  if (!users.find(u => u.email === googleUser.email)) {
+    users.push(googleUser); setUsers(users);
+  }
+  setData('current_user', googleUser);
+  logActivity(googleUser.email);
+  showToast('✅ Login com Google realizado!');
+  enterApp(googleUser);
+}
 
-   const photo =
-   document.getElementById("user-photo");
+function logActivity(email) {
+  let log = getData('activity_log', []);
+  log.push({ email, ts: new Date().toISOString() });
+  if (log.length > 300) log = log.slice(-300);
+  setData('activity_log', log);
+}
 
-   const name =
-   document.getElementById("user-name");
+function enterApp(user) {
+  const ls = document.getElementById('login-screen');
+  ls.classList.add('hidden');
+  setTimeout(() => { ls.style.display = 'none'; }, 400);
+  updateProfileHeader(user);
+}
 
-   const email =
-   document.getElementById("user-email");
+function updateProfileHeader(user) {
+  const ai = document.getElementById('profile-avatar-icon');
+  const dn = document.getElementById('profile-display-name');
+  const de = document.getElementById('profile-display-email');
+  if (ai) ai.textContent = user.avatar || '🌸';
+  if (dn) dn.textContent = user.nome || 'Meu Espaço';
+  if (de) de.textContent = user.email || 'S.O.S Eficiência';
+}
 
-   if(photo) photo.src = user.photoURL;
+function doLogout() {
+  if (!confirm('Deseja sair da sua conta?')) return;
+  setData('current_user', null);
+  location.reload();
+}
 
-   if(name) name.innerText =
-   user.displayName;
+// ---------- NAVEGAÇÃO — ATUALIZADA PARA INCLUIR CONTACTS ----------
+const _origNavTo = navTo;
+navTo = function(page) {
+  _origNavTo(page);
+  if (page === 'contacts') renderContacts();
+  if (page === 'chat') initChat();
+};
 
-   if(email) email.innerText =
-   user.email;
+// Override setupScrollProgress para incluir contacts
+const _origSetupScroll = setupScrollProgress;
+setupScrollProgress = function() {
+  _origSetupScroll();
+  ['contacts','chat'].forEach(pid => {
+    const pg = document.getElementById('page-' + pid);
+    const br = document.getElementById('progress-' + pid);
+    if (!pg || !br) return;
+    pg.addEventListener('scroll', () => {
+      const pct = pg.scrollHeight - pg.clientHeight > 0
+        ? Math.min(100, (pg.scrollTop / (pg.scrollHeight - pg.clientHeight)) * 100) : 0;
+      br.style.width = pct + '%';
+      updateFabTopVisibility(pg.scrollTop);
+    });
+  });
+};
 
- }else{
+// ---------- SOS MODAL — ATUALIZADO ----------
+const _origOpenSOS = openSOS;
+openSOS = function() {
+  // Popula contatos de confiança no modal SOS
+  const contacts = getData('contacts', []);
+  const el = document.getElementById('sos-trusted-contacts');
+  if (el) {
+    if (contacts.length > 0) {
+      el.innerHTML = '<p style="font-size:0.72rem;color:var(--text3);margin-bottom:8px;">Seus contatos de confiança:</p>' +
+        contacts.map(c => `<a href="tel:${c.fone}" style="text-decoration:none;display:block;margin-bottom:8px;">
+          <button class="call-btn" style="background:linear-gradient(135deg,var(--purple),var(--purple2));font-size:0.9rem;padding:13px;">
+            📞 ${c.nome} · ${c.rel}
+          </button></a>`).join('');
+    } else {
+      el.innerHTML = '<p style="font-size:0.73rem;color:var(--text3);text-align:center;padding:6px 0;">Adicione contatos na aba Contatos para vê-los aqui.</p>';
+    }
+  }
+  _origOpenSOS();
+};
 
-   loginScreen.style.display = "flex";
+// ---------- RENDER CONTACTS PAGE ----------
+function renderContacts() {
+  renderContactsList();
+  renderPsychologists();
+}
 
- }
+function renderContactsList() {
+  const contacts = getData('contacts', []);
+  const list = document.getElementById('contacts-list');
+  if (!list) return;
+  if (!contacts.length) {
+    list.innerHTML = '<div class="diary-empty" style="padding:14px 0;"><div class="diary-empty-icon" style="font-size:2.2rem;">👥</div><p>Nenhum contato cadastrado ainda.</p></div>';
+    return;
+  }
+  const avatares = ['👤','👩','👨','👴','👵','🧑','👧','👦'];
+  list.innerHTML = contacts.map((c, i) => `
+    <div class="contact-card">
+      <div class="contact-avatar">${c.avatar || avatares[i % avatares.length]}</div>
+      <div class="contact-info">
+        <div class="contact-name">${c.nome}</div>
+        <div class="contact-phone">📞 ${c.fone}</div>
+        <div class="contact-rel">${c.rel}</div>
+      </div>
+      <div class="contact-actions">
+        <a href="tel:${c.fone}" style="text-decoration:none;">
+          <button class="contact-act-btn">📞</button>
+        </a>
+        <button class="contact-act-btn del" onclick="deleteContact(${i})">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
 
+function openAddContact() {
+  editingContactIdx = null;
+  document.getElementById('contact-modal-title').textContent = 'Adicionar Contato';
+  document.getElementById('contact-input-nome').value = '';
+  document.getElementById('contact-input-fone').value = '';
+  document.getElementById('contact-input-rel').value = '';
+  document.getElementById('contact-error-msg').classList.remove('show');
+  openModal('contact-modal');
+}
+
+function saveContact() {
+  const nome = document.getElementById('contact-input-nome').value.trim();
+  const fone = document.getElementById('contact-input-fone').value.trim();
+  const rel = document.getElementById('contact-input-rel').value.trim();
+  if (!nome || !fone) {
+    const e = document.getElementById('contact-error-msg');
+    e.textContent = 'Nome e telefone são obrigatórios.'; e.classList.add('show'); return;
+  }
+  const contacts = getData('contacts', []);
+  const avatares = ['👤','👩','👨','👴','👵','🧑','👧','👦'];
+  const entry = { nome, fone, rel: rel || 'Contato', avatar: avatares[contacts.length % avatares.length] };
+  if (editingContactIdx !== null) { contacts[editingContactIdx] = entry; }
+  else { contacts.push(entry); }
+  setData('contacts', contacts);
+  closeModal('contact-modal');
+  renderContactsList();
+  showToast('✅ Contato salvo!');
+}
+
+function deleteContact(idx) {
+  if (!confirm('Remover este contato?')) return;
+  const contacts = getData('contacts', []);
+  contacts.splice(idx, 1); setData('contacts', contacts);
+  renderContactsList();
+  showToast('🗑️ Contato removido');
+}
+
+// ---------- PSICÓLOGOS ----------
+function renderPsychologists() {
+  const psychs = getData('psychologists', DEFAULT_PSYCHOLOGISTS);
+  const list = document.getElementById('psychologists-list');
+  if (!list) return;
+  list.innerHTML = psychs.map((p, i) => `
+    <div class="psych-card">
+      <div class="psych-header">
+        <div class="psych-avatar">${p.avatar || '👩‍⚕️'}</div>
+        <div>
+          <div class="psych-name">${p.nome}</div>
+          <div class="psych-spec">${p.spec}</div>
+          <div class="psych-crp">${p.crp}</div>
+        </div>
+      </div>
+      <div class="psych-actions">
+        <a href="tel:${p.fone}" style="text-decoration:none;flex:1;">
+          <button class="psych-btn primary" style="width:100%;">📞 Ligar</button>
+        </a>
+        <a href="mailto:${p.email}" style="text-decoration:none;flex:1;">
+          <button class="psych-btn" style="width:100%;">✉️ E-mail</button>
+        </a>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ---------- COLAR DE EMERGÊNCIA ----------
+function necklaceClick() {
+  necklaceClicks++;
+  for (let i = 0; i < 3; i++) {
+    const dot = document.getElementById('ndot' + i);
+    if (dot) dot.classList.toggle('active', i < necklaceClicks);
+  }
+  const status = document.getElementById('necklace-status');
+  clearTimeout(necklaceResetTimer);
+
+  if (necklaceClicks >= 3) {
+    necklaceClicks = 0;
+    for (let i = 0; i < 3; i++) {
+      const d = document.getElementById('ndot' + i); if (d) d.classList.remove('active');
+    }
+    if (status) { status.textContent = '🆘 Ativado! Enviando alerta...'; status.classList.add('triggered'); }
+    dispararSOS();
+    necklaceResetTimer = setTimeout(() => {
+      if (status) { status.textContent = 'Pressione 3 vezes seguidas para acionar'; status.classList.remove('triggered'); }
+    }, 5000);
+  } else {
+    const rest = 3 - necklaceClicks;
+    if (status) { status.textContent = `Mais ${rest} clique${rest > 1 ? 's' : ''} para acionar!`; status.classList.remove('triggered'); }
+    necklaceResetTimer = setTimeout(() => {
+      necklaceClicks = 0;
+      for (let i = 0; i < 3; i++) { const d = document.getElementById('ndot' + i); if (d) d.classList.remove('active'); }
+      if (status) { status.textContent = 'Pressione 3 vezes seguidas para acionar'; status.classList.remove('triggered'); }
+    }, 3000);
+  }
+}
+
+function dispararSOS() {
+  const contacts = getData('contacts', []);
+  let sos_log = getData('sos_log', []);
+  sos_log.push({ ts: new Date().toISOString(), contatos: contacts.map(c => c.nome) });
+  setData('sos_log', sos_log);
+
+  const msg = contacts.length > 0
+    ? `Alerta enviado para: ${contacts.map(c => c.nome).join(', ')}.`
+    : 'Adicione contatos de confiança para notificá-los automaticamente em emergências.';
+  const alertMsg = document.getElementById('sos-alert-msg');
+  if (alertMsg) alertMsg.textContent = msg;
+  document.getElementById('sos-alert-overlay').classList.add('open');
+}
+
+function fecharSosAlert() {
+  document.getElementById('sos-alert-overlay').classList.remove('open');
+}
+
+// ---------- ADMIN PANEL ----------
+function loginAdmin() {
+  const pw = document.getElementById('admin-pw-field').value;
+  const admins = getAdmins();
+  const ok = admins.some(a => a.pw === pw) || pw === DEFAULT_ADMIN_PW;
+  if (!ok) { showToast('❌ Senha de administrador incorreta'); return; }
+  isAdminLoggedIn = true;
+  document.getElementById('admin-login-area').style.display = 'none';
+  document.getElementById('admin-panel').style.display = 'block';
+  renderAdminPanel();
+  showToast('✅ Painel admin aberto!');
+}
+
+function logoutAdmin() {
+  isAdminLoggedIn = false;
+  document.getElementById('admin-panel').style.display = 'none';
+  document.getElementById('admin-login-area').style.display = 'block';
+  document.getElementById('admin-pw-field').value = '';
+}
+
+function renderAdminPanel() {
+  if (!isAdminLoggedIn) return;
+  const users = getUsers();
+  const admins = getAdmins();
+  const history = getData('emotion_history', []);
+  const diary = getData('diary', []);
+  const sos_log = getData('sos_log', []);
+  const contacts_all = getData('contacts', []);
+
+  // Usuários
+  const ul = document.getElementById('admin-users-list');
+  if (ul) {
+    if (!users.length) {
+      ul.innerHTML = '<p style="font-size:0.78rem;color:var(--text3);padding:8px 0;">Nenhum usuário cadastrado ainda.</p>';
+    } else {
+      ul.innerHTML = users.map(u => `
+        <div class="admin-user-row">
+          <div class="admin-row-flex">
+            <div>
+              <div class="admin-user-name">${u.avatar || '👤'} ${u.nome || '—'}</div>
+              <div class="admin-user-meta">📧 ${u.email} · ${u.metodo || 'email'} · ${new Date(u.criadoEm).toLocaleDateString('pt-BR')}</div>
+            </div>
+          </div>
+        </div>`).join('');
+    }
+  }
+
+  // Admins
+  const al = document.getElementById('admin-admins-list');
+  if (al) {
+    al.innerHTML = admins.map((a, i) => `
+      <div class="admin-user-row">
+        <div class="admin-row-flex">
+          <div>
+            <div class="admin-user-name">🔐 ${a.email}</div>
+            ${i === 0 ? '<div class="admin-user-meta">Administrador principal</div>' : ''}
+          </div>
+          ${i > 0 ? `<button class="contact-act-btn del" onclick="removerAdmin(${i})" style="font-size:0.72rem;">Remover</button>` : ''}
+        </div>
+      </div>`).join('');
+  }
+
+  // Estatísticas
+  const sl = document.getElementById('admin-stats-list');
+  if (sl) {
+    sl.innerHTML = `
+      <div class="admin-stat-row"><span class="admin-stat-label">👥 Usuários cadastrados</span><span class="admin-stat-value">${users.length}</span></div>
+      <div class="admin-stat-row"><span class="admin-stat-label">📊 Total de check-ins emocionais</span><span class="admin-stat-value">${history.length}</span></div>
+      <div class="admin-stat-row"><span class="admin-stat-label">📖 Entradas no diário</span><span class="admin-stat-value">${diary.length}</span></div>
+      <div class="admin-stat-row"><span class="admin-stat-label">🆘 Alertas SOS disparados</span><span class="admin-stat-value">${sos_log.length}</span></div>
+      <div class="admin-stat-row"><span class="admin-stat-label">👥 Contatos cadastrados</span><span class="admin-stat-value">${contacts_all.length}</span></div>
+    `;
+  }
+}
+
+function openAddAdmin() {
+  document.getElementById('new-admin-email').value = '';
+  document.getElementById('new-admin-pw').value = '';
+  document.getElementById('add-admin-error-msg').classList.remove('show');
+  openModal('add-admin-modal');
+}
+
+function saveNewAdmin() {
+  const email = document.getElementById('new-admin-email').value.trim();
+  const pw = document.getElementById('new-admin-pw').value;
+  const errEl = document.getElementById('add-admin-error-msg');
+  if (!email || !pw) { errEl.textContent = 'Preencha todos os campos.'; errEl.classList.add('show'); return; }
+  if (pw.length < 6) { errEl.textContent = 'Senha deve ter pelo menos 6 caracteres.'; errEl.classList.add('show'); return; }
+  const admins = getAdmins();
+  if (admins.find(a => a.email === email)) { errEl.textContent = 'Email já é administrador.'; errEl.classList.add('show'); return; }
+  admins.push({ email, pw }); setAdmins(admins);
+  closeModal('add-admin-modal');
+  renderAdminPanel();
+  showToast('✅ Administrador adicionado!');
+}
+
+function removerAdmin(idx) {
+  if (!confirm('Remover este administrador?')) return;
+  const admins = getAdmins(); admins.splice(idx, 1); setAdmins(admins);
+  renderAdminPanel(); showToast('🗑️ Admin removido');
+}
+
+// ---------- AUTO-LOGIN ----------
+(function checkAutoLogin() {
+  const user = getData('current_user', null);
+  if (user && user.email) {
+    const ls = document.getElementById('login-screen');
+    if (ls) { ls.classList.add('hidden'); setTimeout(() => { ls.style.display = 'none'; }, 400); }
+    updateProfileHeader(user);
+  }
+})();
+
+
+
+// ====================================================
+// CHAT AO VIVO — JAVASCRIPT
+// Usa localStorage compartilhado como "banco" de msgs
+// BroadcastChannel para comunicação entre abas/instâncias
+// ====================================================
+
+const CHAT_KEY = 'sos_chat_msgs';
+const CHAT_MAX = 200;             // máximo de mensagens guardadas
+let chatPollingInterval = null;
+let chatLastCount = 0;
+let chatTypingTimer = null;
+let chatInitialized = false;
+let broadcastCh = null;
+
+// Tenta usar BroadcastChannel para sync entre abas (mesmo dispositivo)
+try {
+  broadcastCh = new BroadcastChannel('sos_chat_channel');
+  broadcastCh.onmessage = () => { refreshChatMessages(false); };
+} catch(e) { broadcastCh = null; }
+
+function getChatMsgs() {
+  try { return JSON.parse(localStorage.getItem(CHAT_KEY)) || []; } catch { return []; }
+}
+
+function saveChatMsgs(msgs) {
+  if (msgs.length > CHAT_MAX) msgs = msgs.slice(-CHAT_MAX);
+  localStorage.setItem(CHAT_KEY, JSON.stringify(msgs));
+}
+
+function getCurrentUserName() {
+  const u = getData('current_user', null);
+  return u ? (u.nome || u.email || 'Anônimo') : 'Anônimo';
+}
+
+function getCurrentUserAvatar() {
+  const u = getData('current_user', null);
+  return u ? (u.avatar || '🌸') : '🌸';
+}
+
+function initChat() {
+  renderChatMessages(true);
+  chatInitialized = true;
+
+  // Polling a cada 2s para simular mensagens de outros usuários
+  clearInterval(chatPollingInterval);
+  chatPollingInterval = setInterval(() => refreshChatMessages(false), 2000);
+
+  // Auto-resize do textarea
+  const ta = document.getElementById('chat-input');
+  if (ta) {
+    ta.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+    });
+  }
+
+  // Foca input
+  setTimeout(() => { const t = document.getElementById('chat-input'); if (t) t.focus(); }, 300);
+
+  // Simula usuários online (número baseado no hash do horário + msgs)
+  updateOnlineCount();
+}
+
+function updateOnlineCount() {
+  const el = document.getElementById('chat-online-count');
+  if (!el) return;
+  const msgs = getChatMsgs();
+  // Simula: conta usuários únicos ativos na última hora
+  const oneHourAgo = Date.now() - 3600000;
+  const activeUsers = new Set(msgs.filter(m => m.ts > oneHourAgo && m.type !== 'system').map(m => m.user));
+  const me = getCurrentUserName();
+  activeUsers.add(me);
+  const n = Math.max(1, activeUsers.size);
+  el.textContent = n + (n === 1 ? ' online' : ' online');
+}
+
+function renderChatMessages(scrollToBottom) {
+  const container = document.getElementById('chat-messages');
+  if (!container) return;
+
+  const msgs = getChatMsgs();
+  chatLastCount = msgs.length;
+
+  if (!msgs.length) {
+    container.innerHTML = `<div class="chat-empty"><div class="chat-empty-icon">💬</div><p>Seja o primeiro a enviar uma mensagem!<br><span style="font-size:0.72rem;color:var(--text3)">Todas as mensagens são anônimas e respeitosas.</span></p></div>`;
+    return;
+  }
+
+  const me = getCurrentUserName();
+  let html = '';
+
+  msgs.forEach((msg, i) => {
+    if (msg.type === 'system') {
+      html += `<div class="chat-msg" style="align-self:center;max-width:90%;"><div class="chat-bubble system">${escHtml(msg.text)}</div></div>`;
+      return;
+    }
+    const isMine = msg.user === me;
+    const cls = isMine ? 'mine' : 'theirs';
+    const timeStr = formatChatTime(msg.ts);
+
+    // Agrupa mensagens do mesmo remetente consecutivas
+    const showName = !isMine && (i === 0 || msgs[i-1].user !== msg.user || msgs[i-1].type === 'system');
+
+    html += `<div class="chat-msg ${cls}">
+      ${showName ? `<div class="chat-sender-name">${escHtml(msg.avatar || '🌸')} ${escHtml(msg.user)}</div>` : ''}
+      <div class="chat-bubble">${escHtml(msg.text).replace(/\n/g, '<br>')}</div>
+      <div class="chat-meta">${timeStr}</div>
+    </div>`;
+  });
+
+  container.innerHTML = html;
+
+  if (scrollToBottom) {
+    container.scrollTop = container.scrollHeight;
+  } else {
+    // Scroll só se já estava no fundo (tolerância 60px)
+    const nearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
+    if (nearBottom) container.scrollTop = container.scrollHeight;
+  }
+
+  updateOnlineCount();
+}
+
+function refreshChatMessages(force) {
+  if (document.getElementById('page-chat')?.classList.contains('active') || force) {
+    const msgs = getChatMsgs();
+    if (msgs.length !== chatLastCount) {
+      renderChatMessages(false);
+    }
+  }
+}
+
+function sendChatMessage() {
+  const ta = document.getElementById('chat-input');
+  if (!ta) return;
+  const text = ta.value.trim();
+  if (!text) return;
+
+  const me = getCurrentUserName();
+  const avatar = getCurrentUserAvatar();
+
+  const msgs = getChatMsgs();
+  msgs.push({
+    id: Date.now() + '_' + Math.random().toString(36).slice(2,7),
+    user: me,
+    avatar: avatar,
+    text: text,
+    ts: Date.now(),
+    type: 'msg'
+  });
+  saveChatMsgs(msgs);
+
+  ta.value = '';
+  ta.style.height = 'auto';
+  renderChatMessages(true);
+
+  // Notifica outras abas/instâncias
+  if (broadcastCh) broadcastCh.postMessage({ type: 'new_msg' });
+
+  // Esconde indicador de digitação
+  const ti = document.getElementById('chat-typing');
+  if (ti) ti.classList.add('hidden');
+  clearTimeout(chatTypingTimer);
+}
+
+function chatKeyDown(e) {
+  // Enter sem Shift envia; Shift+Enter quebra linha
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendChatMessage();
+  }
+}
+
+function chatTyping() {
+  // Mostra "digitando..." para o próprio usuário (cosmético)
+  clearTimeout(chatTypingTimer);
+  chatTypingTimer = setTimeout(() => {
+    const ti = document.getElementById('chat-typing');
+    if (ti) ti.classList.add('hidden');
+  }, 2000);
+}
+
+function formatChatTime(ts) {
+  const d = new Date(ts);
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  const h = d.getHours().toString().padStart(2,'0');
+  const m = d.getMinutes().toString().padStart(2,'0');
+  if (isToday) return h + ':' + m;
+  return d.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' }) + ' ' + h + ':' + m;
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+// Mensagem de boas-vindas quando o app abre pela primeira vez
+(function insertWelcomeMsg() {
+  const msgs = getChatMsgs();
+  if (!msgs.length) {
+    msgs.push({
+      id: 'welcome_001',
+      type: 'system',
+      text: '💜 Bem-vindo ao Chat ao Vivo do S.O.S Eficiência! Este é um espaço de acolhimento e apoio mútuo.',
+      ts: Date.now() - 5000
+    });
+    saveChatMsgs(msgs);
+  }
+})();
+
+// Limpa polling quando a aba não está ativa
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    clearInterval(chatPollingInterval);
+  } else if (chatInitialized && document.getElementById('page-chat')?.classList.contains('active')) {
+    chatPollingInterval = setInterval(() => refreshChatMessages(false), 2000);
+  }
 });
-  console.log("Firebase carregado");
+
+
 </script>
 </body>
 </html>
